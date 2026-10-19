@@ -3,21 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f7a5c">
 <title>רדיו נקי</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Heebo:wght@400;500&display=swap">
 <style>
-/* Layout: a tuner dial on top, the station list as a vertical "band" below, one column on every width */
+/* Layout: filters on top, a grid of station tiles, and a player bar pinned to the bottom */
 :root {
   --bg: #eef1f0; --surface: #ffffff; --fg: #17201d; --muted: #5d6b66;
-  --line: #d5dcd9; --accent: #0f7a5c; --accent-fg: #ffffff; --live: #d23c2a;
+  --line: #d5dcd9; --accent: #0f7a5c; --accent-fg: #ffffff; --live: #d23c2a; --heart: #e0365a;
+  /* Tile colors, one per topic */
+  --t-news: #3b5b8c; --t-israeli: #2f7d6d; --t-jazz: #8a5a2b; --t-classical: #6b4f8f;
+  --t-rock: #a23b3b; --t-electronic: #2c6f8f; --t-eclectic: #4d6b2f; --t-world: #a0632a;
+  --t-pop: #b04a7a; --t-chill: #4a7f86; --t-culture: #6d5a3f; --t-groove: #7a3f7f; --t-mine: #55605c;
   --display: "Rubik", "Segoe UI", Arial, sans-serif;
   --body: "Heebo", "Segoe UI", Arial, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #101614; --surface: #19211e; --fg: #e6ece9; --muted: #93a39d;
-    --line: #2a3531; --accent: #3cc497; --accent-fg: #06130e; --live: #ff6b57; color-scheme: dark; }
+    --line: #2a3531; --accent: #3cc497; --accent-fg: #06130e; --live: #ff6b57; --heart: #ff5c7c; color-scheme: dark; }
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -25,131 +30,234 @@ body {
   background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body);
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: max(16px, env(safe-area-inset-top, 0px)) 120px;
+  padding-block: max(16px, env(safe-area-inset-top, 0px)) calc(120px + env(safe-area-inset-bottom, 0px));
 }
-.wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 24px; }
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 18px; }
 header h1 { font: 700 26px/1.1 var(--display); margin: 0; letter-spacing: -0.01em; }
 header p { margin: 4px 0 0; color: var(--muted); }
+button, select, input { font: inherit; color: inherit; }
+button:focus-visible, select:focus-visible, input:focus-visible, .tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-/* Now playing */
-.now {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
-  padding: 20px; display: grid; gap: 16px;
+/* Tabs: all / favorites */
+.tabs { display: flex; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px; width: fit-content; max-width: 100%; }
+.tab { border: 0; background: none; padding: 8px 18px; border-radius: 999px; cursor: pointer; font-weight: 500; color: var(--muted); }
+.tab[aria-selected="true"] { background: var(--fg); color: var(--bg); }
+
+/* Filters */
+.filters { display: grid; gap: 12px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; min-width: 0; }
+.field span { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.field select, .field input {
+  padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); width: 100%;
 }
-.now-top { display: flex; align-items: center; gap: 16px; }
-.dial {
-  flex: none; width: 64px; height: 64px; border-radius: 50%;
-  display: grid; place-items: center; font: 700 15px var(--display);
-  background: var(--accent); color: var(--accent-fg);
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  border: 1px solid var(--line); background: var(--surface); padding: 6px 14px; border-radius: 999px;
+  cursor: pointer; font-size: 14px;
 }
-.now-info { min-width: 0; flex: 1; }
-.now-name { font: 700 20px/1.2 var(--display); margin: 0; overflow-wrap: anywhere; }
-.now-sub { color: var(--muted); font-size: 14px; }
-.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; letter-spacing: .04em; color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.count { color: var(--muted); font-size: 13px; }
+
+/* Station grid */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.tile {
+  position: relative; aspect-ratio: 1; max-width: 100%; border-radius: 16px; border: 0; cursor: pointer;
+  background: var(--tile, var(--t-mine)); color: #fff; padding: 14px; text-align: start;
+  display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.tile:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgb(0 0 0 / .18); }
+.tile.on { box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--accent); }
+.tile .big { font: 700 30px/1 var(--display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.tile .name { font: 500 15px/1.25 var(--display); }
+.tile .meta { font-size: 12px; opacity: .85; }
+.tile::after { /* soft dial ring in the corner */
+  content: ""; position: absolute; inset-inline-start: -30%; bottom: -30%; width: 80%; aspect-ratio: 1;
+  border-radius: 50%; border: 14px solid rgb(255 255 255 / .08); pointer-events: none;
+}
+.fav {
+  position: absolute; top: 8px; inset-inline-end: 8px; width: 34px; height: 34px; border-radius: 50%;
+  border: 0; background: rgb(0 0 0 / .18); color: #fff; cursor: pointer; display: grid; place-items: center; z-index: 1;
+}
+.fav svg { width: 18px; height: 18px; }
+.fav[aria-pressed="true"] { background: #fff; color: var(--heart); }
+.del { position: absolute; top: 8px; inset-inline-start: 8px; width: 34px; height: 34px; border-radius: 50%; border: 0;
+  background: rgb(0 0 0 / .18); color: #fff; cursor: pointer; font-size: 18px; line-height: 1; z-index: 1; }
+.eq { display: none; gap: 3px; align-items: flex-end; height: 16px; }
+.tile.playing .eq { display: flex; }
+.eq i { width: 4px; background: #fff; border-radius: 2px; animation: eq 1s infinite ease-in-out; }
+.eq i:nth-child(2) { animation-delay: -.4s; } .eq i:nth-child(3) { animation-delay: -.7s; }
+@keyframes eq { 0%,100% { height: 4px; } 50% { height: 16px; } }
+@media (prefers-reduced-motion: reduce) { .eq i { animation: none; height: 10px; } .tile { transition: none; } }
+
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 16px; padding: 28px 20px; text-align: center; color: var(--muted); }
+.empty strong { display: block; color: var(--fg); font: 500 17px var(--display); margin-bottom: 4px; }
+
+/* Add your own station */
+details.add { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+details.add summary { cursor: pointer; font-weight: 500; }
+.add form { display: grid; gap: 8px; margin-top: 10px; }
+.add input { flex: 1 1 160px; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); }
+.add button { padding: 10px 16px; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-fg); font-weight: 500; cursor: pointer; }
+.note { color: var(--muted); font-size: 13px; margin: 0; }
+
+/* Player bar */
+.player {
+  position: fixed; inset-inline: 0; bottom: 0; z-index: 5;
+  background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgb(0 0 0 / .08);
+  padding-top: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.player-in { max-width: 1040px; margin: 0 auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.p-art { flex: none; width: 48px; height: 48px; border-radius: 12px; background: var(--tile, var(--t-mine)); color: #fff;
+  display: grid; place-items: center; font: 700 14px var(--display); overflow: hidden; }
+.p-info { flex: 1 1 140px; min-width: 0; }
+.p-name { font: 500 16px/1.2 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
 .status.live { color: var(--live); }
 .status.live .dot { background: var(--live); animation: pulse 1.4s infinite; }
+.status.err { color: var(--live); }
 @keyframes pulse { 50% { opacity: .3; } }
 @media (prefers-reduced-motion: reduce) { .status.live .dot { animation: none; } }
-
-.controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.play {
-  width: 56px; height: 56px; border-radius: 50%; border: 0; cursor: pointer;
-  background: var(--fg); color: var(--bg); display: grid; place-items: center;
+.p-btns { display: flex; align-items: center; gap: 8px; direction: ltr; } /* media controls keep their standard order in RTL */
+.icon-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: none; cursor: pointer; display: grid; place-items: center; color: var(--muted); }
+.icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
+.icon-btn.faved { color: var(--heart); }
+.play { width: 52px; height: 52px; border-radius: 50%; border: 0; cursor: pointer; background: var(--fg); color: var(--bg); display: grid; place-items: center; }
+.play svg { width: 22px; height: 22px; fill: currentColor; }
+.vol { display: flex; align-items: center; gap: 8px; flex: 0 1 180px; color: var(--muted); }
+.vol input { width: 100%; accent-color: var(--accent); }
+@media (max-width: 560px) {
+  .vol { display: none; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile .big { font-size: 24px; }
 }
-.play svg { width: 24px; height: 24px; fill: currentColor; }
-.vol { flex: 1; min-width: 140px; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
-.vol input { flex: 1; accent-color: var(--accent); }
-button:focus-visible, input:focus-visible, .station:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-
-/* Station list */
-section h2 { font: 500 13px var(--display); color: var(--muted); letter-spacing: .06em; margin: 0 0 8px; }
-.list { display: grid; gap: 6px; }
-.station {
-  display: flex; align-items: center; gap: 12px; width: 100%;
-  padding: 12px 14px; border-radius: 12px; border: 1px solid transparent;
-  background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer;
-}
-.station:hover { background: var(--surface); border-color: var(--line); }
-.station[aria-current="true"] { background: var(--surface); border-color: var(--accent); }
-.freq { flex: none; width: 52px; font: 500 13px var(--display); color: var(--accent); font-variant-numeric: tabular-nums; }
-.s-text { min-width: 0; flex: 1; }
-.s-name { font-weight: 500; display: block; }
-.s-desc { color: var(--muted); font-size: 13px; display: block; }
-.del { flex: none; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px 8px; border-radius: 8px; }
-.del:hover { color: var(--live); }
-
-.add { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
-.add-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.add input { flex: 1 1 160px; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font: inherit; }
-.add button { padding: 10px 16px; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-fg); font: 500 14px var(--display); cursor: pointer; }
-.note { color: var(--muted); font-size: 13px; margin: 0; }
-.err { color: var(--live); font-size: 13px; min-height: 1em; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>רדיו נקי</h1>
-    <p>תחנות ציבוריות ותחנות במימון מאזינים, בלי פרסומות מסחריות.</p>
+    <p>תחנות ציבוריות ותחנות במימון מאזינים מכל העולם, בלי פרסומות מסחריות.</p>
   </header>
 
-  <div class="now" aria-live="polite">
-    <div class="now-top">
-      <div class="dial" id="dial">—</div>
-      <div class="now-info">
-        <span class="status" id="status"><span class="dot"></span><span id="statusText">מוכן</span></span>
-        <p class="now-name" id="nowName">בחרו תחנה</p>
-        <div class="now-sub" id="nowSub">לחיצה על תחנה מתחילה לנגן</div>
-      </div>
-    </div>
-    <div class="controls">
-      <button class="play" id="playBtn" aria-label="נגן">
-        <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-      </button>
-      <label class="vol" for="vol">עוצמה <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8"></label>
-    </div>
-    <div class="err" id="err"></div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tabAll" aria-selected="true">כל התחנות</button>
+    <button class="tab" role="tab" id="tabFav" aria-selected="false">המועדפים שלי</button>
   </div>
 
-  <section id="groups"></section>
+  <div class="filters">
+    <div class="row">
+      <label class="field" for="country"><span>מדינה</span><select id="country"></select></label>
+      <label class="field" for="search"><span>חיפוש</span><input id="search" type="search" placeholder="שם תחנה…"></label>
+    </div>
+    <div class="chips" id="topics" aria-label="נושאים"></div>
+    <div class="count" id="count"></div>
+  </div>
 
-  <section>
-    <h2>הוספת תחנה משלכם</h2>
-    <form class="add" id="addForm">
-      <div class="add-row">
+  <div class="grid" id="grid"></div>
+
+  <details class="add">
+    <summary>הוספת תחנה משלכם</summary>
+    <form id="addForm">
+      <div class="row">
         <input id="addName" placeholder="שם התחנה" required>
         <input id="addUrl" placeholder="כתובת סטרים (https://…mp3)" dir="ltr" required>
         <button type="submit">הוספה</button>
       </div>
-      <p class="note">התחנות שתוסיפו נשמרות בדפדפן הזה בלבד.</p>
+      <p class="note">התחנות שתוסיפו נשמרות בדפדפן הזה בלבד, ומופיעות תחת "התחנות שלי" ברשימת המדינות.</p>
     </form>
-  </section>
+  </details>
+</div>
+
+<div class="player" aria-live="polite">
+  <div class="player-in">
+    <div class="p-art" id="pArt">—</div>
+    <div class="p-info">
+      <div class="p-name" id="pName">בחרו תחנה</div>
+      <span class="status" id="status"><span class="dot"></span><span id="statusText">לחיצה על ריבוע מתחילה לנגן</span></span>
+    </div>
+    <div class="p-btns">
+      <button class="icon-btn" id="pFav" aria-label="הוספה למועדפים"></button>
+      <button class="icon-btn" id="prevBtn" aria-label="התחנה הקודמת"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 12l8.5 6V6z"/></svg></button>
+      <button class="play" id="playBtn" aria-label="נגן"><svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+      <button class="icon-btn" id="nextBtn" aria-label="התחנה הבאה"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12L18 6v12z"/></svg></button>
+    </div>
+    <label class="vol" for="vol"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg><input id="vol" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="עוצמה"></label>
+  </div>
 </div>
 
 <audio id="audio" preload="none"></audio>
 
 <script>
+const COUNTRIES = {
+  IL: "ישראל", FR: "צרפת", US: "ארה״ב", GB: "בריטניה", DE: "גרמניה", CH: "שווייץ",
+  DK: "דנמרק", SE: "שוודיה", NO: "נורווגיה", AU: "אוסטרליה", MY: "התחנות שלי",
+};
+const TOPICS = {
+  israeli: "מוזיקה ישראלית", news: "חדשות ואקטואליה", culture: "תרבות", eclectic: "מגוון",
+  rock: "רוק", pop: "פופ", jazz: "ג'אז", classical: "קלאסי", electronic: "אלקטרוני",
+  groove: "גרוב וסול", world: "מוזיקת עולם", chill: "רגוע",
+};
 const STW = m => `https://playerservices.streamtheworld.com/api/livestream-redirect/${m}.mp3`;
-const GROUPS = [
-  { title: "כאן · השידור הציבורי", note: "ללא פרסומות מסחריות", stations: [
-    { id: "kan88",  freq: "88",    name: "כאן 88",        desc: "מוזיקה איכותית, ג'אז ועולם", url: STW("KAN_88") },
-    { id: "gimmel", freq: "גימל",  name: "כאן גימל",      desc: "מוזיקה ישראלית",           url: STW("KAN_GIMMEL") },
-    { id: "bet",    freq: "ב׳",    name: "כאן ב",         desc: "חדשות ואקטואליה",           url: STW("KAN_BET") },
-    { id: "tarbut", freq: "תרבות", name: "כאן תרבות",     desc: "תרבות, ספרות ומוזיקה",      url: STW("KAN_TARBUT") },
-    { id: "kolham", freq: "קלאסי", name: "כאן קול המוסיקה", desc: "מוזיקה קלאסית",            url: STW("KAN_KOL_HAMUSICA") },
-    { id: "reka",   freq: "רקע", name: "כאן רקע",       desc: "שידורים בשפות שונות",       url: STW("KAN_REKA") },
-    { id: "moreshet", freq: "מורשת",name: "כאן מורשת",     desc: "מסורת ויהדות",             url: STW("KAN_MORESHET") },
-  ]},
-  { title: "בינלאומי · במימון מאזינים", note: "", stations: [
-    { id: "rp",     freq: "RP",   name: "Radio Paradise",        desc: "רוק, אינדי ועולם, מעורבב ביד", url: "https://stream.radioparadise.com/aac-128" },
-    { id: "rpmel",  freq: "RP",   name: "Radio Paradise Mellow",  desc: "רגוע",                      url: "https://stream.radioparadise.com/mellow-128" },
-    { id: "fip",    freq: "FIP",  name: "FIP",                   desc: "רדיו צרפת, אקלקטי",          url: "https://icecast.radiofrance.fr/fip-hifi.aac" },
-    { id: "fipjazz",freq: "FIP",  name: "FIP Jazz",              desc: "ג'אז",                       url: "https://icecast.radiofrance.fr/fipjazz-hifi.aac" },
-    { id: "rprock", freq: "RP",   name: "Radio Paradise Rock",   desc: "רוק",                        url: "https://stream.radioparadise.com/rock-128" },
-    { id: "fiprock",freq: "FIP",  name: "FIP Rock",              desc: "רוק, ישן וחדש",              url: "https://icecast.radiofrance.fr/fiprock-hifi.aac" },
-  ]},
-];
+const DLF = n => `https://st0${n}.sslstream.dlf.de/dlf/0${n}/128/mp3/stream.mp3?aggregator=web`;
+const NRK = m => `https://cdn0-47115-liveicecast0.dna.contentdelivery.net/${m}_mp3_h`;
+const FIP = m => `https://icecast.radiofrance.fr/${m}-hifi.aac`;
+const RP = m => `https://stream.radioparadise.com/${m}`;
+
+// [id, short label, name, country, topics, description, url]
+const STATIONS = [
+  ["kan88",   "88",     "כאן 88",            "IL", ["eclectic","jazz","world"], "מוזיקה איכותית, ג'אז ועולם", STW("KAN_88")],
+  ["gimmel",  "גימל",   "כאן גימל",          "IL", ["israeli"],                 "מוזיקה ישראלית",             STW("KAN_GIMMEL")],
+  ["bet",     "ב׳",     "כאן ב",             "IL", ["news"],                    "חדשות ואקטואליה",            STW("KAN_BET")],
+  ["tarbut",  "תרבות",  "כאן תרבות",         "IL", ["culture"],                 "תרבות, ספרות ומוזיקה",       STW("KAN_TARBUT")],
+  ["kolham",  "קלאסי",  "כאן קול המוסיקה",   "IL", ["classical"],               "מוזיקה קלאסית",              STW("KAN_KOL_HAMUSICA")],
+  ["reka",    "רקע",    "כאן רקע",           "IL", ["news"],                    "שידורים בשפות שונות",        STW("KAN_REKA")],
+  ["moreshet","מורשת",  "כאן מורשת",         "IL", ["culture"],                 "מסורת ויהדות",               STW("KAN_MORESHET")],
+
+  ["fip",      "FIP",   "FIP",               "FR", ["eclectic"],                "אקלקטי, בלי פרסומות",        FIP("fip")],
+  ["fipjazz",  "Jazz",  "FIP Jazz",          "FR", ["jazz"],                    "ג'אז",                       FIP("fipjazz")],
+  ["fiprock",  "Rock",  "FIP Rock",          "FR", ["rock"],                    "רוק, ישן וחדש",              FIP("fiprock")],
+  ["fipgroove","Groove","FIP Groove",        "FR", ["groove"],                  "פאנק, סול והיפ-הופ",         FIP("fipgroove")],
+  ["fipelec",  "Electro","FIP Electro",      "FR", ["electronic"],              "אלקטרוני",                   FIP("fipelectro")],
+  ["fipworld", "Monde", "FIP Monde",         "FR", ["world"],                   "מוזיקת עולם",                FIP("fipworld")],
+  ["fipreggae","Reggae","FIP Reggae",        "FR", ["world","groove"],          "רגאיי ודאב",                 FIP("fipreggae")],
+  ["fippop",   "Pop",   "FIP Pop",           "FR", ["pop"],                     "פופ",                        FIP("fippop")],
+  ["fipnew",   "New",   "FIP Nouveautés",    "FR", ["eclectic","pop"],          "מוזיקה חדשה",                FIP("fipnouveautes")],
+
+  ["rp",       "RP",    "Radio Paradise",    "US", ["eclectic","rock"],         "רוק, אינדי ועולם",           RP("aac-128")],
+  ["rpmellow", "RP",    "Radio Paradise Mellow","US", ["chill"],                "רגוע",                       RP("mellow-128")],
+  ["rprock",   "RP",    "Radio Paradise Rock","US", ["rock"],                   "רוק",                        RP("rock-128")],
+  ["rpworld",  "RP",    "Radio Paradise World","US", ["world","chill"],         "עולם ואקלקטי",               RP("world-etc-128")],
+  ["kexp",     "KEXP",  "KEXP Seattle",      "US", ["rock","eclectic"],         "אינדי ואלטרנטיבי",           "https://kexp.streamguys1.com/kexp160.aac"],
+  ["wfmu",     "WFMU",  "WFMU",              "US", ["eclectic"],                "רדיו חופשי ומשוגע",          "https://stream0.wfmu.org/freeform-128k"],
+
+  ["nts1",     "NTS 1", "NTS 1",             "GB", ["electronic","eclectic"],   "רדיו אנדרגראונד מלונדון",    "https://stream-relay-geo.ntslive.net/stream"],
+  ["nts2",     "NTS 2", "NTS 2",             "GB", ["electronic","eclectic"],   "רדיו אנדרגראונד מלונדון",    "https://stream-relay-geo.ntslive.net/stream2"],
+
+  ["dlf",      "DLF",   "Deutschlandfunk",   "DE", ["news"],                    "חדשות (בגרמנית)",            DLF(1)],
+  ["dlfk",     "Kultur","Deutschlandfunk Kultur","DE", ["culture"],             "תרבות (בגרמנית)",            DLF(2)],
+  ["dlfnova",  "Nova",  "Deutschlandfunk Nova","DE", ["news","pop"],            "אקטואליה ומוזיקה צעירה",     DLF(3)],
+
+  ["swissjazz","Jazz",  "Radio Swiss Jazz",  "CH", ["jazz","chill"],            "ג'אז רצוף",                  "https://stream.srg-ssr.ch/srgssr/rsj/mp3/128"],
+  ["swissclas","Classic","Radio Swiss Classic","CH", ["classical"],             "קלאסי רצוף",                 "https://stream.srg-ssr.ch/srgssr/rsc_de/aac/96"],
+
+  ["drp8",     "P8",    "DR P8 Jazz",        "DK", ["jazz"],                    "ג'אז",                       "https://live-icy.dr.dk/A/A22H.mp3"],
+  ["drp6",     "P6",    "DR P6 Beat",        "DK", ["rock","pop"],              "רוק ואינדי",                 "https://live-icy.dr.dk/A/A29H.mp3"],
+  ["drp1",     "P1",    "DR P1",             "DK", ["news"],                    "חדשות (בדנית)",              "https://live-icy.dr.dk/A/A03H.mp3"],
+
+  ["srp2",     "P2",    "Sveriges Radio P2", "SE", ["classical","jazz"],        "קלאסי וג'אז",                "https://live1.sr.se/p2-mp3-192"],
+  ["srp3",     "P3",    "Sveriges Radio P3", "SE", ["pop"],                     "פופ",                        "https://live1.sr.se/p3-mp3-96"],
+  ["srp1",     "P1",    "Sveriges Radio P1", "SE", ["news"],                    "חדשות (בשוודית)",            "https://live1.sr.se/p1-mp3-96"],
+
+  ["nrkjazz",  "Jazz",  "NRK Jazz",          "NO", ["jazz"],                    "ג'אז",                       NRK("jazz")],
+  ["nrkklass", "Klassisk","NRK Klassisk",    "NO", ["classical"],               "קלאסי",                      NRK("klassisk")],
+  ["nrkp1",    "P1",    "NRK P1",            "NO", ["pop","news"],              "פופ וחדשות (בנורווגית)",     NRK("p1")],
+
+  ["triplej",  "J",     "Triple J",          "AU", ["rock","pop"],              "אינדי ואלטרנטיבי",           "https://abc.streamguys1.com/live/triplejnsw/icecast.audio"],
+].map(([id, label, name, country, topics, desc, url]) => ({ id, label, name, country, topics, desc, url }));
 
 const $ = id => document.getElementById(id);
 const audio = $("audio");
@@ -157,110 +265,179 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("radio:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem("radio:" + k, JSON.stringify(v)); } catch {} },
 };
-let custom = store.get("custom", []);
+
+let custom = store.get("custom", []).map(s => ({ label: "★", country: "MY", topics: [], desc: "תחנה שהוספתם", ...s, country: "MY" }));
+let favs = new Set(store.get("favs", []));
+let state = { tab: store.get("tab", "all"), country: store.get("country", ""), topic: store.get("topic", ""), q: "" };
 let current = null;
+let visible = [];
 
-function allStations() {
-  return GROUPS.flatMap(g => g.stations).concat(custom);
-}
+const HEART = full => `<svg viewBox="0 0 24 24" fill="${full ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.4 3.2 5 6.6 5c2 0 3.6 1.1 4.4 2.6h2C13.8 6.1 15.4 5 17.4 5 20.8 5 23 8.4 21.5 11.8 19.5 16.4 12 21 12 21z"/></svg>`;
+const all = () => STATIONS.concat(custom);
+const tileColor = s => `var(--t-${s.country === "MY" ? "mine" : s.topics[0]})`;
 
-function render() {
-  const root = $("groups");
-  root.innerHTML = "";
-  const groups = custom.length
-    ? GROUPS.concat({ title: "התחנות שלי", note: "", stations: custom, custom: true })
-    : GROUPS;
-  for (const g of groups) {
-    const sec = document.createElement("div");
-    sec.style.marginBottom = "20px";
-    sec.innerHTML = `<h2>${g.title}${g.note ? " · " + g.note : ""}</h2>`;
-    const list = document.createElement("div");
-    list.className = "list";
-    for (const s of g.stations) {
-      const row = document.createElement("div");
-      row.style.display = "flex";
-      const b = document.createElement("button");
-      b.className = "station";
-      b.setAttribute("aria-current", current && current.id === s.id ? "true" : "false");
-      b.innerHTML = `<span class="freq"></span><span class="s-text"><span class="s-name"></span><span class="s-desc"></span></span>`;
-      b.querySelector(".freq").textContent = s.freq || "★";
-      b.querySelector(".s-name").textContent = s.name;
-      b.querySelector(".s-desc").textContent = s.desc || "";
-      b.onclick = () => tune(s);
-      row.appendChild(b);
-      if (g.custom) {
-        const d = document.createElement("button");
-        d.className = "del"; d.textContent = "×"; d.setAttribute("aria-label", "הסרת " + s.name);
-        d.onclick = () => { custom = custom.filter(c => c.id !== s.id); store.set("custom", custom); render(); };
-        row.appendChild(d);
-      }
-      list.appendChild(row);
-    }
-    sec.appendChild(list);
-    root.appendChild(sec);
+function buildFilters() {
+  const counts = {};
+  for (const s of all()) counts[s.country] = (counts[s.country] || 0) + 1;
+  $("country").innerHTML = `<option value="">כל המדינות (${all().length})</option>` +
+    Object.keys(COUNTRIES).filter(c => counts[c]).map(c => `<option value="${c}">${COUNTRIES[c]} (${counts[c]})</option>`).join("");
+  if (state.country && !counts[state.country]) state.country = "";
+  $("country").value = state.country;
+
+  $("topics").innerHTML = "";
+  for (const [key, label] of [["", "הכול"], ...Object.entries(TOPICS)]) {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = label;
+    b.setAttribute("aria-pressed", state.topic === key);
+    b.onclick = () => { state.topic = key; store.set("topic", key); buildFilters(); renderGrid(); };
+    $("topics").appendChild(b);
   }
 }
 
-function setStatus(text, live) {
-  $("statusText").textContent = text;
-  $("status").classList.toggle("live", !!live);
+function filtered() {
+  const q = state.q.trim().toLowerCase();
+  return all().filter(s =>
+    (state.tab !== "fav" || favs.has(s.id)) &&
+    (!state.country || s.country === state.country) &&
+    (!state.topic || s.topics.includes(state.topic)) &&
+    (!q || (s.name + " " + s.desc).toLowerCase().includes(q)));
 }
 
-function setIcon(playing) {
-  $("playIcon").innerHTML = playing
-    ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>'
-    : '<path d="M8 5v14l11-7z"/>';
+function renderGrid() {
+  $("tabAll").setAttribute("aria-selected", state.tab === "all");
+  $("tabFav").setAttribute("aria-selected", state.tab === "fav");
+  $("tabFav").textContent = `המועדפים שלי (${favs.size})`;
+  visible = filtered();
+  const grid = $("grid");
+  grid.innerHTML = "";
+  $("count").textContent = visible.length ? `${visible.length} תחנות` : "";
+
+  if (!visible.length) {
+    const e = document.createElement("div");
+    e.className = "empty"; e.style.gridColumn = "1 / -1";
+    e.innerHTML = state.tab === "fav" && !favs.size
+      ? "<strong>עוד אין מועדפים</strong>לחצו על הלב בפינת הריבוע של תחנה, והיא תופיע כאן."
+      : "<strong>אין תחנות שמתאימות לסינון</strong>נסו מדינה אחרת או נושא אחר.";
+    grid.appendChild(e);
+    return;
+  }
+
+  for (const s of visible) {
+    const t = document.createElement("div");
+    t.className = "tile" + (current && current.id === s.id ? " on" + (audio.paused ? "" : " playing") : "");
+    t.tabIndex = 0; t.setAttribute("role", "button");
+    t.setAttribute("aria-label", `נגן ${s.name}`);
+    t.style.setProperty("--tile", tileColor(s));
+    t.innerHTML = `
+      <button class="fav" aria-pressed="${favs.has(s.id)}" aria-label="${favs.has(s.id) ? "הסרה מהמועדפים" : "הוספה למועדפים"}">${HEART(favs.has(s.id))}</button>
+      <div class="big"></div>
+      <div><div class="eq"><i></i><i></i><i></i></div><div class="name"></div><div class="meta"></div></div>`;
+    t.querySelector(".big").textContent = s.label;
+    t.querySelector(".name").textContent = s.name;
+    t.querySelector(".meta").textContent = `${COUNTRIES[s.country]} · ${s.desc}`;
+    t.querySelector(".fav").onclick = e => { e.stopPropagation(); toggleFav(s.id); };
+    if (s.country === "MY") {
+      const d = document.createElement("button");
+      d.className = "del"; d.textContent = "×"; d.setAttribute("aria-label", "מחיקת " + s.name);
+      d.onclick = e => {
+        e.stopPropagation();
+        custom = custom.filter(c => c.id !== s.id);
+        store.set("custom", custom.map(({ id, name, url }) => ({ id, name, url })));
+        favs.delete(s.id); store.set("favs", [...favs]);
+        buildFilters(); renderGrid();
+      };
+      t.appendChild(d);
+    }
+    t.onclick = () => tune(s);
+    t.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tune(s); } };
+    grid.appendChild(t);
+  }
+}
+
+function toggleFav(id) {
+  favs.has(id) ? favs.delete(id) : favs.add(id);
+  store.set("favs", [...favs]);
+  renderGrid(); renderPlayer();
+}
+
+function setStatus(text, cls) {
+  $("statusText").textContent = text;
+  $("status").className = "status" + (cls ? " " + cls : "");
+}
+
+function renderPlayer() {
+  const playing = current && !audio.paused;
+  $("playIcon").innerHTML = playing ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
   $("playBtn").setAttribute("aria-label", playing ? "עצירה" : "נגן");
+  $("pFav").hidden = !current;
+  if (!current) return;
+  const f = favs.has(current.id);
+  $("pFav").innerHTML = HEART(f);
+  $("pFav").classList.toggle("faved", f);
+  $("pFav").setAttribute("aria-label", f ? "הסרה מהמועדפים" : "הוספה למועדפים");
+  $("pName").textContent = current.name;
+  $("pArt").textContent = current.label;
+  $("pArt").style.setProperty("--tile", tileColor(current));
 }
 
 function tune(s) {
   current = s;
   store.set("last", s.id);
-  $("nowName").textContent = s.name;
-  $("nowSub").textContent = s.desc || "";
-  $("dial").textContent = s.freq || "★";
-  $("err").textContent = "";
   // Cache-bust so a resumed live stream starts at "now", not from a stale buffer
   audio.src = s.url + (s.url.includes("?") ? "&" : "?") + "t=" + Date.now();
-  setStatus("מתחבר…", false);
+  setStatus("מתחבר…");
   audio.play().catch(() => {});
-  render();
+  renderPlayer(); renderGrid();
   if ("mediaSession" in navigator) {
-    navigator.mediaSession.metadata = new MediaMetadata({ title: s.name, artist: s.desc || "רדיו נקי" });
+    navigator.mediaSession.metadata = new MediaMetadata({ title: s.name, artist: `${COUNTRIES[s.country]} · ${s.desc}`, album: "רדיו נקי" });
   }
 }
 
-function toggle() {
-  if (!current) { tune(allStations()[0]); return; }
-  if (audio.paused) tune(current);
-  else { audio.pause(); audio.removeAttribute("src"); audio.load(); setStatus("מושהה", false); setIcon(false); }
+function stop() {
+  audio.pause(); audio.removeAttribute("src"); audio.load();
+  setStatus("מושהה"); renderPlayer(); renderGrid();
 }
 
-audio.addEventListener("playing", () => { setStatus("בשידור חי", true); setIcon(true); });
-audio.addEventListener("waiting", () => setStatus("טוען…", false));
+function toggle() {
+  if (!current) { const first = visible[0] || all()[0]; if (first) tune(first); return; }
+  audio.paused ? tune(current) : stop();
+}
+
+function step(dir) {
+  const list = visible.length ? visible : all();
+  const i = list.findIndex(s => current && s.id === current.id);
+  tune(list[(i + dir + list.length) % list.length]);
+}
+
+audio.addEventListener("playing", () => { setStatus("בשידור חי", "live"); renderPlayer(); renderGrid(); });
+audio.addEventListener("waiting", () => setStatus("טוען…"));
 audio.addEventListener("error", () => {
   if (!audio.getAttribute("src")) return;
-  setStatus("שגיאה", false); setIcon(false);
-  $("err").textContent = "לא הצלחנו להתחבר לתחנה. בדקו את החיבור לאינטרנט או נסו תחנה אחרת.";
+  setStatus("התחנה לא זמינה כרגע. נסו תחנה אחרת.", "err"); renderPlayer(); renderGrid();
 });
 
 $("playBtn").onclick = toggle;
+$("nextBtn").onclick = () => step(1);
+$("prevBtn").onclick = () => step(-1);
+$("pFav").onclick = () => current && toggleFav(current.id);
+$("tabAll").onclick = () => { state.tab = "all"; store.set("tab", "all"); renderGrid(); };
+$("tabFav").onclick = () => { state.tab = "fav"; store.set("tab", "fav"); renderGrid(); };
+$("country").onchange = e => { state.country = e.target.value; store.set("country", state.country); renderGrid(); };
+$("search").oninput = e => { state.q = e.target.value; renderGrid(); };
+
 $("vol").value = store.get("vol", 0.8);
 audio.volume = +$("vol").value;
 $("vol").oninput = e => { audio.volume = +e.target.value; store.set("vol", audio.volume); };
 
 document.addEventListener("keydown", e => {
-  if (e.code === "Space" && !/INPUT|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); toggle(); }
+  if (e.code === "Space" && !/INPUT|BUTTON|SELECT/.test(document.activeElement.tagName) && !document.activeElement.classList.contains("tile")) {
+    e.preventDefault(); toggle();
+  }
 });
 
 if ("mediaSession" in navigator) {
   navigator.mediaSession.setActionHandler("play", toggle);
   navigator.mediaSession.setActionHandler("pause", toggle);
-  const step = dir => {
-    const list = allStations();
-    const i = Math.max(0, list.findIndex(s => current && s.id === current.id));
-    tune(list[(i + dir + list.length) % list.length]);
-  };
   navigator.mediaSession.setActionHandler("nexttrack", () => step(1));
   navigator.mediaSession.setActionHandler("previoustrack", () => step(-1));
 }
@@ -268,22 +445,20 @@ if ("mediaSession" in navigator) {
 $("addForm").addEventListener("submit", e => {
   e.preventDefault();
   const name = $("addName").value.trim(), url = $("addUrl").value.trim();
-  if (!/^https?:\/\//.test(url)) { $("err").textContent = "הכתובת צריכה להתחיל ב-http:// או https://"; return; }
-  custom.push({ id: "c" + Date.now(), name, url, freq: "★", desc: "תחנה שהוספתם" });
-  store.set("custom", custom);
+  if (!/^https?:\/\//.test(url)) { setStatus("הכתובת צריכה להתחיל ב-https://", "err"); return; }
+  const s = { id: "c" + Date.now(), name, url, label: "★", country: "MY", topics: [], desc: "תחנה שהוספתם" };
+  custom.push(s);
+  store.set("custom", custom.map(({ id, name, url }) => ({ id, name, url })));
   e.target.reset();
-  render();
+  state.country = "MY"; store.set("country", "MY"); state.tab = "all";
+  buildFilters(); renderGrid();
 });
 
-// Restore the last station into the dial without autoplaying (browsers need a tap first)
-const last = allStations().find(s => s.id === store.get("last"));
-if (last) {
-  current = last;
-  $("nowName").textContent = last.name;
-  $("nowSub").textContent = "לחצו נגן כדי להמשיך להאזין";
-  $("dial").textContent = last.freq || "★";
-}
-render();
+// Restore the last station into the player without autoplaying (browsers need a tap first)
+current = all().find(s => s.id === store.get("last")) || null;
+if (state.tab === "fav" && !favs.size) state.tab = "all";
+buildFilters(); renderGrid(); renderPlayer();
+if (current) setStatus("לחצו נגן כדי להמשיך להאזין");
 </script>
 </body>
 </html>
