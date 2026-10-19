@@ -197,19 +197,13 @@ details.add summary { cursor: pointer; font-weight: 500; }
 <audio id="audio" preload="none"></audio>
 
 <script>
-const COUNTRIES = {
-  IL: "ישראל", FR: "צרפת", US: "ארה״ב", GB: "בריטניה", DE: "גרמניה", CH: "שווייץ",
-  DK: "דנמרק", SE: "שוודיה", NO: "נורווגיה", AU: "אוסטרליה", MY: "התחנות שלי",
-};
+const COUNTRIES = { IL: "ישראל", US: "ארה״ב", MY: "התחנות שלי" };
 const TOPICS = {
   israeli: "מוזיקה ישראלית", news: "חדשות ואקטואליה", culture: "תרבות", eclectic: "מגוון",
   rock: "רוק", pop: "פופ", jazz: "ג'אז", classical: "קלאסי", electronic: "אלקטרוני",
-  groove: "גרוב וסול", world: "מוזיקת עולם", chill: "רגוע", mizrahi: "מזרחית", religion: "יהדות", country: "קאנטרי",
+  groove: "היפ-הופ וסול", world: "מוזיקת עולם", chill: "רגוע", mizrahi: "מזרחית", religion: "יהדות", country: "קאנטרי",
 };
 const STW = m => `https://playerservices.streamtheworld.com/api/livestream-redirect/${m}.mp3`;
-const DLF = n => `https://st0${n}.sslstream.dlf.de/dlf/0${n}/128/mp3/stream.mp3?aggregator=web`;
-const NRK = m => `https://cdn0-47115-liveicecast0.dna.contentdelivery.net/${m}_mp3_h`;
-const FIP = m => `https://icecast.radiofrance.fr/${m}-hifi.aac`;
 const RP = m => `https://stream.radioparadise.com/${m}`;
 
 // [id, short label, name, country, topics, description, url, has ads]
@@ -249,44 +243,35 @@ const STATIONS = [
   ["r100jazz","Jazz",   "100% Jazz",         "IL", ["jazz"],                    "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Jazz/icecast.audio", 1],
   ["r100rlx", "Relax",  "100% Relax",        "IL", ["chill"],                   "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Relax/icecast.audio", 1],
 
-  ["fip",      "FIP",   "FIP",               "FR", ["eclectic"],                "אקלקטי, בלי פרסומות",        FIP("fip")],
-  ["fipjazz",  "Jazz",  "FIP Jazz",          "FR", ["jazz"],                    "ג'אז",                       FIP("fipjazz")],
-  ["fiprock",  "Rock",  "FIP Rock",          "FR", ["rock"],                    "רוק, ישן וחדש",              FIP("fiprock")],
-  ["fipgroove","Groove","FIP Groove",        "FR", ["groove"],                  "פאנק, סול והיפ-הופ",         FIP("fipgroove")],
-  ["fipelec",  "Electro","FIP Electro",      "FR", ["electronic"],              "אלקטרוני",                   FIP("fipelectro")],
-  ["fipworld", "Monde", "FIP Monde",         "FR", ["world"],                   "מוזיקת עולם",                FIP("fipworld")],
-  ["fipreggae","Reggae","FIP Reggae",        "FR", ["world","groove"],          "רגאיי ודאב",                 FIP("fipreggae")],
-  ["fippop",   "Pop",   "FIP Pop",           "FR", ["pop"],                     "פופ",                        FIP("fippop")],
-  ["fipnew",   "New",   "FIP Nouveautés",    "FR", ["eclectic","pop"],          "מוזיקה חדשה",                FIP("fipnouveautes")],
-
   ["rp",       "RP",    "Radio Paradise",    "US", ["eclectic","rock"],         "רוק, אינדי ועולם",           RP("aac-128")],
   ["rpmellow", "RP",    "Radio Paradise Mellow","US", ["chill"],                "רגוע",                       RP("mellow-128")],
   ["rprock",   "RP",    "Radio Paradise Rock","US", ["rock"],                   "רוק",                        RP("rock-128")],
   ["rpworld",  "RP",    "Radio Paradise World","US", ["world","chill"],         "עולם ואקלקטי",               RP("world-etc-128")],
   ["kexp",     "KEXP",  "KEXP Seattle",      "US", ["rock","eclectic"],         "אינדי ואלטרנטיבי",           "https://kexp.streamguys1.com/kexp160.aac"],
   ["wfmu",     "WFMU",  "WFMU",              "US", ["eclectic"],                "רדיו חופשי ומשוגע",          "https://stream0.wfmu.org/freeform-128k"],
-
-  ["nts1",     "NTS 1", "NTS 1",             "GB", ["electronic","eclectic"],   "רדיו אנדרגראונד מלונדון",    "https://stream-relay-geo.ntslive.net/stream"],
-  ["nts2",     "NTS 2", "NTS 2",             "GB", ["electronic","eclectic"],   "רדיו אנדרגראונד מלונדון",    "https://stream-relay-geo.ntslive.net/stream2"],
-
-  ["dlf",      "DLF",   "Deutschlandfunk",   "DE", ["news"],                    "חדשות (בגרמנית)",            DLF(1)],
-  ["dlfk",     "Kultur","Deutschlandfunk Kultur","DE", ["culture"],             "תרבות (בגרמנית)",            DLF(2)],
-  ["dlfnova",  "Nova",  "Deutschlandfunk Nova","DE", ["news","pop"],            "אקטואליה ומוזיקה צעירה",     DLF(3)],
-
-  ["swissjazz","Jazz",  "Radio Swiss Jazz",  "CH", ["jazz","chill"],            "ג'אז רצוף",                  "https://stream.srg-ssr.ch/srgssr/rsj/mp3/128"],
-  ["swissclas","Classic","Radio Swiss Classic","CH", ["classical"],             "קלאסי רצוף",                 "https://stream.srg-ssr.ch/srgssr/rsc_de/aac/96"],
-
-  ["drp8",     "P8",    "DR P8 Jazz",        "DK", ["jazz"],                    "ג'אז",                       "https://live-icy.dr.dk/A/A22H.mp3"],
-  ["drp6",     "P6",    "DR P6 Beat",        "DK", ["rock","pop"],              "רוק ואינדי",                 "https://live-icy.dr.dk/A/A29H.mp3"],
-  ["drp1",     "P1",    "DR P1",             "DK", ["news"],                    "חדשות (בדנית)",              "https://live-icy.dr.dk/A/A03H.mp3"],
-
-  ["srp2",     "P2",    "Sveriges Radio P2", "SE", ["classical","jazz"],        "קלאסי וג'אז",                "https://live1.sr.se/p2-mp3-192"],
-  ["srp3",     "P3",    "Sveriges Radio P3", "SE", ["pop"],                     "פופ",                        "https://live1.sr.se/p3-mp3-96"],
-  ["srp1",     "P1",    "Sveriges Radio P1", "SE", ["news"],                    "חדשות (בשוודית)",            "https://live1.sr.se/p1-mp3-96"],
-
-  ["nrkjazz",  "Jazz",  "NRK Jazz",          "NO", ["jazz"],                    "ג'אז",                       NRK("jazz")],
-  ["nrkklass", "Klassisk","NRK Klassisk",    "NO", ["classical"],               "קלאסי",                      NRK("klassisk")],
-  ["nrkp1",    "P1",    "NRK P1",            "NO", ["pop","news"],              "פופ וחדשות (בנורווגית)",     NRK("p1")],
+  ["wbgo",     "WBGO",  "WBGO Jazz",         "US", ["jazz"],                    "ג'אז, ניוארק",               "https://ais-sa8.cdnstream1.com/3629_128.mp3"],
+  ["wwoz",     "WWOZ",  "WWOZ New Orleans",  "US", ["jazz","world"],            "ג'אז, בלוז ומוזיקה של ניו אורלינס", "https://wwoz-sc.streamguys1.com/wwoz-hi.mp3"],
+  ["jazz24",   "Jazz24","Jazz24",            "US", ["jazz","chill"],            "ג'אז קלאסי רצוף",            "https://knkx-live-a.edge.audiocdn.com/6285_128k"],
+  ["kcsm",     "KCSM",  "KCSM Jazz 91",      "US", ["jazz"],                    "ג'אז, סן פרנסיסקו",          "https://ice7.securenetsystems.net/KCSM2"],
+  ["wrti",     "WRTI",  "WRTI Jazz",         "US", ["jazz"],                    "ג'אז, פילדלפיה",             "https://wrti-live.streamguys1.com/jazz-mp3"],
+  ["wqxr",     "WQXR",  "WQXR",              "US", ["classical"],               "קלאסי, ניו יורק",            "https://stream.wqxr.org/wqxr-web"],
+  ["kusc",     "KUSC",  "Classical KUSC",    "US", ["classical"],               "קלאסי, לוס אנג'לס",          "https://playerservices.streamtheworld.com/api/livestream-redirect/KUSCMP256.mp3"],
+  ["kingfm",   "KING",  "Classical KING FM", "US", ["classical"],               "קלאסי, סיאטל",               "https://classicalking.streamguys1.com/king-fm-aac-128k"],
+  ["wfmt",     "WFMT",  "WFMT",              "US", ["classical"],               "קלאסי, שיקגו",               "https://wfmt.streamguys1.com/main128.aac", 1],
+  ["kcrw",     "KCRW",  "KCRW",              "US", ["eclectic","news"],         "מוזיקה מגוונת וחדשות, לוס אנג'לס", "https://streams.kcrw.com/kcrw_mp3"],
+  ["kcrwe24",  "E24",   "KCRW Eclectic24",   "US", ["eclectic"],                "מוזיקה מגוונת רצופה",        "https://streams.kcrw.com/e24_mp3"],
+  ["wxpn",     "XPN",   "WXPN",              "US", ["rock","eclectic"],         "רוק ואינדי, פילדלפיה",       "https://wxpnhi.xpn.org/xpnhi"],
+  ["kutx",     "KUTX",  "KUTX",              "US", ["rock","eclectic"],         "המוזיקה של אוסטין",          "https://streams.kut.org/4428_192.mp3"],
+  ["wfuv",     "WFUV",  "WFUV",              "US", ["rock","eclectic"],         "רוק ופולק, ניו יורק",        "https://onair.wfuv.org/onair-aacplus"],
+  ["current",  "Current","The Current",      "US", ["rock","eclectic"],         "אינדי, מיניאפוליס",          "https://current.stream.publicradio.org/current.mp3"],
+  ["wyms",     "88Nine","Radio Milwaukee",   "US", ["eclectic"],                "מוזיקה מגוונת, מילווקי",     "https://wyms.streamguys1.com/live"],
+  ["wmbr",     "WMBR",  "WMBR",              "US", ["eclectic"],                "רדיו הסטודנטים של MIT",      "https://wmbr.org:8002/hi"],
+  ["z100",     "Z100",  "Z100",              "US", ["pop"],                     "להיטים, ניו יורק",           "https://stream.revma.ihrhls.com/zc1469", 1],
+  ["kiis",     "KIIS",  "KIIS FM",           "US", ["pop"],                     "להיטים, לוס אנג'לס",         "https://stream.revma.ihrhls.com/zc185", 1],
+  ["hot97",    "Hot 97","Hot 97",            "US", ["groove"],                  "היפ-הופ, ניו יורק",          "https://playerservices.streamtheworld.com/api/livestream-redirect/WQHTFMAAC.aac", 1],
+  ["litefm",   "Lite",  "Lite FM",           "US", ["pop","chill"],             "פופ רך, ניו יורק",           "https://stream.revma.ihrhls.com/zc853", 1],
+  ["q1043",    "Q",     "Q104.3",            "US", ["rock"],                    "רוק קלאסי, ניו יורק",        "https://stream.revma.ihrhls.com/zc1465", 1],
+  ["kroq",     "KROQ",  "KROQ",              "US", ["rock"],                    "רוק אלטרנטיבי, לוס אנג'לס",  "https://live.amperwave.net/direct/audacy-kroqfmaac-imc", 1],
 
   ["bluegrass","BG",    "Bluegrass Country", "US", ["country"],                 "בלוגראס וקאנטרי ותיק, בלי פרסומות", "https://ice24.securenetsystems.net/WAMU"],
   ["kisscntry","Kiss",  "99.9 Kiss Country", "US", ["country"],                 "קאנטרי עכשווי, מיאמי",       "https://stream.revma.ihrhls.com/zc1577", 1],
@@ -296,11 +281,6 @@ const STATIONS = [
   ["c18190s",  "90s",   "181.FM 90's Country","US", ["country"],                "קאנטרי של שנות ה-90",        "https://listen.181fm.com/181-90scountry_128k.mp3", 1],
   ["outlaw",   "Outlaw","Outlaw Country",    "US", ["country","rock"],          "קאנטרי אאוטלו ורוק דרומי",   "https://r.bgp.rodeo/listen/outlaw/radio.mp3", 1],
   ["hpr1",     "HPR",   "HPR1 Classic Country","US", ["country"],               "קאנטרי מסורתי",              "https://us2.maindigitalstream.com/ssl/7713", 1],
-  ["smoothcty","Smooth","Smooth Country",    "GB", ["country"],                 "קאנטרי רגוע מלונדון",        "https://media-ssl.musicradio.com/SmoothCountry", 1],
-  ["rmcountry","Hits",  "CountryHits.FM",    "DE", ["country"],                 "להיטי קאנטרי",               "https://country-high.rautemusik.fm/", 1],
-  ["country108","108",  "Country 108",       "DE", ["country"],                 "קאנטרי מכל התקופות",         "https://icepool.silvacast.com/COUNTRY108.mp3", 1],
-  ["abccountry","ABC",  "ABC Country",       "AU", ["country"],                 "קאנטרי אוסטרלי, בלי פרסומות", "https://abc.streamguys1.com/live/abccountry/icecast.audio"],
-  ["triplej",  "J",     "Triple J",          "AU", ["rock","pop"],              "אינדי ואלטרנטיבי",           "https://abc.streamguys1.com/live/triplejnsw/icecast.audio"],
 ].map(([id, label, name, country, topics, desc, url, ads]) => ({ id, label, name, country, topics, desc, url, ads: !!ads }));
 
 // FM frequency: central Israel (Gush Dan) for Israeli stations, the home city for stations abroad.
@@ -310,12 +290,11 @@ const FREQ = {
   kolham: 94.4, bet: 95.5, fm96: 96.0, fm963: 96.3, darom97: 97.0, moreshet: 97.2, gimmel: 97.8,
   fm99: 99.0, fm100: 100.0, fm101: 101.0, ashams: 101.1, darom1015: 101.5, hatahana: 101.5,
   fm102: 102.0, glz: 102.3, fm103: 103.0, fm1045: 104.5, tarbut: 104.8, fm1075: 107.5,
-  fip: 105.1,                                   // Paris
   kexp: 90.3, wfmu: 91.1, kisscntry: 99.9,      // Seattle, New Jersey, Miami
-  dlfk: 89.6, dlf: 97.7,                        // Berlin
-  drp1: 90.8,                                   // Copenhagen
-  srp1: 92.4, srp2: 96.2, srp3: 99.3,           // Stockholm
-  triplej: 105.7,                               // Sydney
+  wbgo: 88.3, wwoz: 90.7, kcsm: 91.1, wrti: 90.1,  // Newark, New Orleans, San Mateo, Philadelphia
+  wqxr: 105.9, kusc: 91.5, kingfm: 98.1, wfmt: 98.7, // New York, Los Angeles, Seattle, Chicago
+  kcrw: 89.9, wxpn: 88.5, kutx: 98.9, wfuv: 90.7, current: 89.3, wyms: 88.9, wmbr: 88.1,
+  z100: 100.3, kiis: 102.7, hot97: 97.1, litefm: 93.9, q1043: 104.3, kroq: 106.7,
 };
 STATIONS.forEach((st, i) => {
   st.order = i;
@@ -361,7 +340,8 @@ function buildFilters() {
   $("country").value = F().country;
 
   $("topics").innerHTML = "";
-  for (const [key, label] of [["", "הכול"], ...Object.entries(TOPICS)]) {
+  const used = new Set(all().flatMap(s => s.topics));
+  for (const [key, label] of [["", "הכול"], ...Object.entries(TOPICS).filter(([k]) => used.has(k))]) {
     const b = document.createElement("button");
     b.className = "chip";
     b.innerHTML = key ? `<span class="swatch" style="background: var(--t-${key})"></span>` : "";
@@ -537,6 +517,9 @@ $("addForm").addEventListener("submit", e => {
 });
 
 // Restore the last station into the player without autoplaying (browsers need a tap first)
+// Forget favorites of stations that were removed from the list
+favs = new Set([...favs].filter(id => all().some(s => s.id === id)));
+store.set("favs", [...favs]);
 current = all().find(s => s.id === store.get("last")) || null;
 if (state.tab === "fav" && !favs.size) state.tab = "all";
 buildFilters(); renderGrid(); renderPlayer();
