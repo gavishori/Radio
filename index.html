@@ -39,6 +39,9 @@ button, select, input { font: inherit; color: inherit; }
 button:focus-visible, select:focus-visible, input:focus-visible, .tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 /* Tabs: all / favorites */
+.sync { font-size: 13px; color: var(--muted); }
+.sync.ok::before { content: "● "; color: var(--accent); }
+.sync.off::before { content: "● "; color: var(--live); }
 .tabs { display: flex; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px; width: fit-content; max-width: 100%; }
 .tab { border: 0; background: none; padding: 8px 18px; border-radius: 999px; cursor: pointer; font-weight: 500; color: var(--muted); }
 .tab[aria-selected="true"] { background: var(--fg); color: var(--bg); }
@@ -148,9 +151,12 @@ details.add summary { cursor: pointer; font-weight: 500; }
     <p>תחנות מישראל ומכל העולם. תחנות שמשדרות פרסומות מסומנות, ואפשר להסתיר אותן.</p>
   </header>
 
-  <div class="tabs" role="tablist">
-    <button class="tab" role="tab" id="tabAll" aria-selected="true">כל התחנות</button>
-    <button class="tab" role="tab" id="tabFav" aria-selected="false">המועדפים שלי</button>
+  <div class="row">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tabAll" aria-selected="true">כל התחנות</button>
+      <button class="tab" role="tab" id="tabFav" aria-selected="false">המועדפים שלי</button>
+    </div>
+    <span class="sync" id="sync">מתחבר לסנכרון…</span>
   </div>
 
   <div class="filters">
@@ -402,7 +408,7 @@ function renderGrid() {
         e.stopPropagation();
         custom = custom.filter(c => c.id !== s.id);
         store.set("custom", custom.map(({ id, name, url }) => ({ id, name, url })));
-        favs.delete(s.id); store.set("favs", [...favs]);
+        if (favs.delete(s.id)) saveFavs();
         buildFilters(); renderGrid();
       };
       t.appendChild(d);
@@ -415,9 +421,57 @@ function renderGrid() {
 
 function toggleFav(id) {
   favs.has(id) ? favs.delete(id) : favs.add(id);
+  saveFavs();
+  if (state.tab === "fav") buildFilters();
+  renderGrid(); renderPlayer();
+}
+
+// ---- Favorites sync between devices (Firebase Realtime Database, same project as the Timer app) ----
+// localStorage is the instant local cache; Firebase is the source of truth shared by every device.
+const FAVS_URL = "https://timer-4672a-default-rtdb.europe-west1.firebasedatabase.app/app-1b3c84cf218410393163a85b/radio-favs.json";
+
+function setSync(text, cls) {
+  $("sync").textContent = text;
+  $("sync").className = "sync " + cls;
+}
+
+function saveFavs() {
+  store.set("favs", [...favs]);
+  fetch(FAVS_URL, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify([...favs]) })
+    .catch(() => setSync("לא מחובר לסנכרון, נשמר רק במכשיר הזה", "off"));
+}
+
+function applyRemoteFavs(value) {
+  const list = Array.isArray(value) ? value : value ? Object.values(value) : [];
+  favs = new Set(list.filter(id => typeof id === "string"));
   store.set("favs", [...favs]);
   if (state.tab === "fav") buildFilters();
   renderGrid(); renderPlayer();
+}
+
+function connectSync() {
+  let first = true;
+  let es;
+  try { es = new EventSource(FAVS_URL); } catch { setSync("לא מחובר לסנכרון", "off"); return; }
+  es.addEventListener("put", e => {
+    setSync("המועדפים מסונכרנים בין המכשירים", "ok");
+    try {
+      const { data } = JSON.parse(e.data);
+      const remote = Array.isArray(data) ? data : data ? Object.values(data) : [];
+      if (first && !store.get("synced", false)) {
+        // This device's very first sync: merge favorites saved here before sync existed, so nothing is lost.
+        // After that the cloud always wins, so a favorite removed on one device stays removed everywhere.
+        store.set("synced", true);
+        const merged = new Set([...remote, ...favs]);
+        if (merged.size !== remote.length) { first = false; favs = merged; saveFavs(); applyRemoteFavs([...merged]); return; }
+      }
+      first = false;
+      applyRemoteFavs(remote);
+    } catch {}
+  });
+  // Every save writes the whole list, so a partial update means someone edited it by hand: reload it
+  es.addEventListener("patch", () => fetch(FAVS_URL).then(r => r.json()).then(applyRemoteFavs).catch(() => {}));
+  es.onerror = () => setSync("לא מחובר לסנכרון, נשמר רק במכשיר הזה", "off");
 }
 
 function setStatus(text, cls) {
@@ -516,14 +570,15 @@ $("addForm").addEventListener("submit", e => {
   buildFilters(); renderGrid();
 });
 
-// Restore the last station into the player without autoplaying (browsers need a tap first)
-// Forget favorites of stations that were removed from the list
+// Forget favorites of stations that were removed from the list (locally only; the cloud copy arrives next)
 favs = new Set([...favs].filter(id => all().some(s => s.id === id)));
 store.set("favs", [...favs]);
+// Restore the last station into the player without autoplaying (browsers need a tap first)
 current = all().find(s => s.id === store.get("last")) || null;
 if (state.tab === "fav" && !favs.size) state.tab = "all";
 buildFilters(); renderGrid(); renderPlayer();
 if (current) setStatus("לחצו נגן כדי להמשיך להאזין");
+connectSync();
 </script>
 </body>
 </html>
