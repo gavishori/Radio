@@ -80,6 +80,15 @@ button:focus-visible, select:focus-visible, input:focus-visible, .tile:focus-vis
 .tile .big { font: 700 30px/1 var(--display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
 .tile .name { font: 500 15px/1.25 var(--display); }
 .tile .meta { font-size: 12px; opacity: .85; }
+.tile .bottom { min-width: 0; }
+.np { margin-top: 4px; padding-top: 4px; border-top: 1px solid rgb(255 255 255 / .25); min-width: 0; }
+.np .song, .np .artist, .p-song { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np .song { font: 500 13px/1.3 var(--display); }
+.np .artist { font-size: 12px; opacity: .85; }
+/* A tile showing a song makes room for it: one-line station name, smaller frequency */
+.tile.has-np .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile.has-np .big { font-size: 24px; }
+.tile.has-np .badge { margin-bottom: 2px; }
 .tile::after { /* soft dial ring in the corner */
   content: ""; position: absolute; inset-inline-start: -30%; bottom: -30%; width: 80%; aspect-ratio: 1;
   border-radius: 50%; border: 14px solid rgb(255 255 255 / .08); pointer-events: none;
@@ -188,6 +197,7 @@ details.add summary { cursor: pointer; font-weight: 500; }
     <div class="p-art" id="pArt">—</div>
     <div class="p-info">
       <div class="p-name" id="pName">בחרו תחנה</div>
+      <div class="p-song" id="pSong" dir="auto" hidden></div>
       <span class="status" id="status"><span class="dot"></span><span id="statusText">לחיצה על ריבוע מתחילה לנגן</span></span>
     </div>
     <div class="p-btns">
@@ -413,7 +423,10 @@ function renderGrid() {
     t.innerHTML = `
       <button class="fav" aria-pressed="${favs.has(s.id)}" aria-label="${favs.has(s.id) ? "הסרה מהמועדפים" : "הוספה למועדפים"}">${HEART(favs.has(s.id))}</button>
       <div class="big"></div>
-      <div><div class="eq"><i></i><i></i><i></i></div>${s.ads ? '<span class="badge">פרסומות</span>' : ""}<div class="name"></div><div class="meta"></div></div>`;
+      <div class="bottom"><div class="eq"><i></i><i></i><i></i></div>${s.ads ? '<span class="badge">פרסומות</span>' : ""}<div class="name" dir="auto"></div><div class="meta"></div>
+        <div class="np" hidden><div class="song" dir="auto"></div><div class="artist" dir="auto"></div></div></div>`;
+    t.dataset.id = s.id;
+    fillNowPlaying(t, s.id);
     t.querySelector(".big").textContent = s.label;
     t.querySelector(".name").textContent = s.name;
     t.querySelector(".meta").textContent = `${s.freq ? "FM · " : ""}${COUNTRIES[s.country]} · ${s.desc}`;
@@ -434,6 +447,7 @@ function renderGrid() {
     t.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tune(s); } };
     grid.appendChild(t);
   }
+  refreshNowPlaying();  // stations that just came into view; ones fetched recently are skipped
 }
 
 function toggleFav(id) {
@@ -509,7 +523,117 @@ function renderPlayer() {
   $("pName").textContent = current.name;
   $("pArt").textContent = current.label;
   $("pArt").style.setProperty("--tile", tileColor(current));
+  const np = nowPlaying[current.id];
+  $("pSong").hidden = !np;
+  if (np) $("pSong").textContent = np.artist ? `${np.title} · ${np.artist}` : np.title;
+  if ("mediaSession" in navigator && playing) {
+    navigator.mediaSession.metadata = new MediaMetadata(np
+      ? { title: np.title, artist: np.artist || current.name, album: current.name }
+      : { title: current.name, artist: `${COUNTRIES[current.country]} · ${current.desc}`, album: "רדיו נקי" });
+  }
 }
+
+// ---- Song and artist on the tiles ----
+// Each station publishes "now playing" its own way, and most stream servers don't let a web page
+// read it. These are the stations whose song info the browser can read directly.
+const NP_SOURCES = {
+  // Song title embedded in the audio stream (ICY metadata), "Artist - Title"
+  c181real: "icy", c181kick: "icy", c18190s: "icy", c181heart: "icy", c18180s: "icy", c181star90: "icy",
+  bigrlove: "icy", jazz24: "icy", lovelive: "icy", opry100: "icy", outlaw: "icy",
+  kingfm: "icy-title-first",  // "Work - Composer - Performers"
+  // The stations' own now-playing APIs
+  kexp: "kexp", kcrw: "kcrw:Simulcast", kcrwe24: "kcrw:Music", current: "current",
+  bluegrass: "securenet:WAMU", kusc: "triton:KUSCMP256", hot97: "triton:WQHTFMAAC",
+};
+const NP_TTL = 30000;
+const nowPlaying = {};   // station id -> { title, artist }
+const npFetchedAt = {};
+
+const clean = v => (v || "").replace(/`/g, "'").replace(/\s+/g, " ").trim();
+function track(title, artist) {
+  title = clean(title); artist = clean(artist);
+  if (!title || /commercial|advertisement|text=|after this break/i.test(title + " " + artist)) return null;
+  return { title, artist };
+}
+
+async function readIcy(url, titleFirst) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const r = await fetch(url, { headers: { "Icy-MetaData": "1" }, signal: ctrl.signal, cache: "no-store" });
+    const metaint = +r.headers.get("icy-metaint");
+    if (!metaint) return null;
+    // Read just past the first audio block to reach the metadata block, then hang up
+    const reader = r.body.getReader();
+    let buf = new Uint8Array(0);
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) return null;
+      const next = new Uint8Array(buf.length + value.length); next.set(buf); next.set(value, buf.length); buf = next;
+      if (buf.length > metaint && buf.length >= metaint + 1 + buf[metaint] * 16) break;
+    }
+    const meta = new TextDecoder().decode(buf.slice(metaint + 1, metaint + 1 + buf[metaint] * 16));
+    const m = meta.match(/StreamTitle='(.*?)';/);
+    if (!m) return null;
+    const [a, ...rest] = m[1].split(" - ");
+    return titleFirst ? track(a, rest[0]) : track(rest.join(" - "), a);
+  } finally { clearTimeout(timer); ctrl.abort(); }
+}
+
+async function fetchNowPlaying(s) {
+  const [kind, arg] = NP_SOURCES[s.id].split(":");
+  const json = u => fetch(u, { cache: "no-store" }).then(r => r.json());
+  const xml = u => fetch(u, { cache: "no-store" }).then(r => r.text()).then(t => new DOMParser().parseFromString(t, "text/xml"));
+  if (kind === "icy") return readIcy(s.url, false);
+  if (kind === "icy-title-first") return readIcy(s.url, true);
+  if (kind === "kexp") {
+    const p = (await json("https://api.kexp.org/v2/plays/?limit=1")).results[0];
+    return p && p.play_type === "trackplay" ? track(p.song, p.artist) : null;
+  }
+  if (kind === "kcrw") { const d = await json(`https://tracklist-api.kcrw.com/${arg}`); return track(d.title, d.artist); }
+  if (kind === "current") { const d = (await json("https://nowplaying.publicradio.org/the-current/playlist")).data.songs[0]; return d && track(d.title, d.artist); }
+  if (kind === "securenet") {
+    const d = await xml(`https://streamdb3web.securenetsystems.net/player_status_update/${arg}.xml`);
+    return track(d.querySelector("title")?.textContent, d.querySelector("artist")?.textContent);
+  }
+  if (kind === "triton") {
+    const d = await xml(`https://np.tritondigital.com/public/nowplaying?mountName=${arg}&numberToFetch=1&eventType=track`);
+    const prop = n => d.querySelector(`property[name="${n}"]`)?.textContent;
+    return track(prop("cue_title"), prop("track_artist_name"));
+  }
+  return null;
+}
+
+function fillNowPlaying(tile, id) {
+  const np = nowPlaying[id];
+  tile.querySelector(".np").hidden = !np;
+  tile.querySelector(".meta").hidden = !!np;
+  tile.classList.toggle("has-np", !!np);
+  if (np) {
+    tile.querySelector(".song").textContent = np.title;
+    tile.querySelector(".artist").textContent = np.artist;
+  }
+}
+
+async function refreshNowPlaying() {
+  if (document.hidden) return;
+  const ids = new Set(visible.map(s => s.id));
+  if (current) ids.add(current.id);
+  const due = all().filter(s => ids.has(s.id) && NP_SOURCES[s.id] && !(Date.now() - (npFetchedAt[s.id] || 0) < NP_TTL));
+  await Promise.all(due.map(async s => {
+    npFetchedAt[s.id] = Date.now();
+    let np = null;
+    try { np = await fetchNowPlaying(s); } catch {}
+    const before = JSON.stringify(nowPlaying[s.id] || null);
+    if (np) nowPlaying[s.id] = np; else delete nowPlaying[s.id];
+    if (JSON.stringify(np) === before) return;
+    const tile = document.querySelector(`.tile[data-id="${s.id}"]`);
+    if (tile) fillNowPlaying(tile, s.id);
+    if (current && current.id === s.id) renderPlayer();
+  }));
+}
+setInterval(refreshNowPlaying, 10000);
+document.addEventListener("visibilitychange", refreshNowPlaying);
 
 function tune(s) {
   current = s;
@@ -596,6 +720,7 @@ if (state.tab === "fav" && !favs.size) state.tab = "all";
 buildFilters(); renderGrid(); renderPlayer();
 if (current) setStatus("לחצו נגן כדי להמשיך להאזין");
 connectSync();
+refreshNowPlaying();
 </script>
 </body>
 </html>
