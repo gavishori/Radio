@@ -15,7 +15,7 @@
   /* Tile colors, one per topic */
   --t-news: #3b5b8c; --t-israeli: #2f7d6d; --t-jazz: #8a5a2b; --t-classical: #6b4f8f;
   --t-rock: #a23b3b; --t-electronic: #2c6f8f; --t-eclectic: #4d6b2f; --t-world: #a0632a;
-  --t-pop: #b04a7a; --t-chill: #4a7f86; --t-culture: #6d5a3f; --t-groove: #7a3f7f; --t-mizrahi: #b5702a; --t-religion: #4f6a8a; --t-mine: #55605c;
+  --t-pop: #b04a7a; --t-chill: #4a7f86; --t-culture: #6d5a3f; --t-groove: #7a3f7f; --t-mizrahi: #b5702a; --t-religion: #4f6a8a; --t-country: #8c6d1f; --t-mine: #55605c;
   --display: "Rubik", "Segoe UI", Arial, sans-serif;
   --body: "Heebo", "Segoe UI", Arial, sans-serif;
   color-scheme: light;
@@ -204,7 +204,7 @@ const COUNTRIES = {
 const TOPICS = {
   israeli: "מוזיקה ישראלית", news: "חדשות ואקטואליה", culture: "תרבות", eclectic: "מגוון",
   rock: "רוק", pop: "פופ", jazz: "ג'אז", classical: "קלאסי", electronic: "אלקטרוני",
-  groove: "גרוב וסול", world: "מוזיקת עולם", chill: "רגוע", mizrahi: "מזרחית", religion: "יהדות",
+  groove: "גרוב וסול", world: "מוזיקת עולם", chill: "רגוע", mizrahi: "מזרחית", religion: "יהדות", country: "קאנטרי",
 };
 const STW = m => `https://playerservices.streamtheworld.com/api/livestream-redirect/${m}.mp3`;
 const DLF = n => `https://st0${n}.sslstream.dlf.de/dlf/0${n}/128/mp3/stream.mp3?aggregator=web`;
@@ -288,23 +288,45 @@ const STATIONS = [
   ["nrkklass", "Klassisk","NRK Klassisk",    "NO", ["classical"],               "קלאסי",                      NRK("klassisk")],
   ["nrkp1",    "P1",    "NRK P1",            "NO", ["pop","news"],              "פופ וחדשות (בנורווגית)",     NRK("p1")],
 
+  ["bluegrass","BG",    "Bluegrass Country", "US", ["country"],                 "בלוגראס וקאנטרי ותיק, בלי פרסומות", "https://ice24.securenetsystems.net/WAMU"],
+  ["kisscntry","Kiss",  "99.9 Kiss Country", "US", ["country"],                 "קאנטרי עכשווי, מיאמי",       "https://stream.revma.ihrhls.com/zc1577", 1],
+  ["wsm",      "WSM",   "WSM 650 AM",        "US", ["country"],                 "נאשוויל, בית הגרנד אול אופרי", "https://ais-sa8.cdnstream1.com/3666_96.aac", 1],
+  ["c181real", "Real",  "181.FM Real Country","US", ["country"],                "קאנטרי קלאסי",               "https://listen.181fm.com/181-realcountry_128k.mp3", 1],
+  ["c181kick", "Kickin'","181.FM Kickin' Country","US", ["country"],            "להיטי קאנטרי חדשים",         "https://listen.181fm.com/181-kickincountry_128k.mp3", 1],
+  ["c18190s",  "90s",   "181.FM 90's Country","US", ["country"],                "קאנטרי של שנות ה-90",        "https://listen.181fm.com/181-90scountry_128k.mp3", 1],
+  ["outlaw",   "Outlaw","Outlaw Country",    "US", ["country","rock"],          "קאנטרי אאוטלו ורוק דרומי",   "https://r.bgp.rodeo/listen/outlaw/radio.mp3", 1],
+  ["hpr1",     "HPR",   "HPR1 Classic Country","US", ["country"],               "קאנטרי מסורתי",              "https://us2.maindigitalstream.com/ssl/7713", 1],
+  ["smoothcty","Smooth","Smooth Country",    "GB", ["country"],                 "קאנטרי רגוע מלונדון",        "https://media-ssl.musicradio.com/SmoothCountry", 1],
+  ["rmcountry","Hits",  "CountryHits.FM",    "DE", ["country"],                 "להיטי קאנטרי",               "https://country-high.rautemusik.fm/", 1],
+  ["country108","108",  "Country 108",       "DE", ["country"],                 "קאנטרי מכל התקופות",         "https://icepool.silvacast.com/COUNTRY108.mp3", 1],
+  ["abccountry","ABC",  "ABC Country",       "AU", ["country"],                 "קאנטרי אוסטרלי, בלי פרסומות", "https://abc.streamguys1.com/live/abccountry/icecast.audio"],
   ["triplej",  "J",     "Triple J",          "AU", ["rock","pop"],              "אינדי ואלטרנטיבי",           "https://abc.streamguys1.com/live/triplejnsw/icecast.audio"],
 ].map(([id, label, name, country, topics, desc, url, ads]) => ({ id, label, name, country, topics, desc, url, ads: !!ads }));
 
-// FM frequency in central Israel (Gush Dan), used for the tile label and the dial order
+// FM frequency: central Israel (Gush Dan) for Israeli stations, the home city for stations abroad.
+// Used for the tile label and the dial order. Internet- and DAB-only stations have none.
 const FREQ = {
   kan88: 88.0, reka: 88.2, fm891: 89.1, fm90: 90.0, fm91: 91.0, glglz: 91.8, fm93: 93.0, fm94: 94.0,
   kolham: 94.4, bet: 95.5, fm96: 96.0, fm963: 96.3, darom97: 97.0, moreshet: 97.2, gimmel: 97.8,
   fm99: 99.0, fm100: 100.0, fm101: 101.0, ashams: 101.1, darom1015: 101.5, hatahana: 101.5,
   fm102: 102.0, glz: 102.3, fm103: 103.0, fm1045: 104.5, tarbut: 104.8, fm1075: 107.5,
+  fip: 105.1,                                   // Paris
+  kexp: 90.3, wfmu: 91.1, kisscntry: 99.9,      // Seattle, New Jersey, Miami
+  dlfk: 89.6, dlf: 97.7,                        // Berlin
+  drp1: 90.8,                                   // Copenhagen
+  srp1: 92.4, srp2: 96.2, srp3: 99.3,           // Stockholm
+  triplej: 105.7,                               // Sydney
 };
 STATIONS.forEach((st, i) => {
   st.order = i;
   st.freq = FREQ[st.id];
   if (st.freq) st.label = st.freq.toFixed(1);
 });
-// Stations with a frequency first, low to high; then internet-only stations in their listed order
-STATIONS.sort((a, b) => (a.freq ? 0 : 1) - (b.freq ? 0 : 1) || (a.freq || 0) - (b.freq || 0) || a.order - b.order);
+// Grouped by country (Israel first); inside a country, FM stations low to high, then internet-only ones
+const countryRank = c => Object.keys(COUNTRIES).indexOf(c);
+STATIONS.sort((a, b) =>
+  countryRank(a.country) - countryRank(b.country) ||
+  (a.freq ? 0 : 1) - (b.freq ? 0 : 1) || (a.freq || 0) - (b.freq || 0) || a.order - b.order);
 
 const $ = id => document.getElementById(id);
 const audio = $("audio");
