@@ -123,5 +123,6 @@ function track(title, artist) {
   const all = title + " " + artist;
   if (!title || /commercial|advertisement|after this break|membership drive|powered by|^cdn\b/i.test(all)) return null;
   if (/^[?\s]*$/.test(title)) return null;  // a station that sends Hebrew as "????"
+  if (title.toLowerCase() === artist.toLowerCase() || /^advert|^track \d+$/i.test(title)) return null;  // placeholders, not songs
   return { title, artist };
 }

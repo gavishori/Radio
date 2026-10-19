@@ -563,9 +563,9 @@ const NP_SOURCES = {
   bluegrass: "securenet:WAMU", kusc: "triton:KUSCMP256", hot97: "triton:WQHTFMAAC",
   // Read through our song-info server (worker/ in this repo), for stations that block web pages
   r10090s: "server:icy", r100old: "server:icy", r100jazz: "server:icy", r100rlx: "server:icy", r100love: "server:icy",
-  lovesoft: "server:icy", wfmu: "server:icy", loveradio: "server:icy", delilah: "server:icy", kcsm: "server:icy",
-  wqxr: "server:icy", z100: "server:icy", kiis: "server:icy", litefm: "server:icy", q1043: "server:icy",
-  kisscntry: "server:icy", big98: "server:icy", hpr1: "server:icy", kumu: "server:icy",
+  lovesoft: "server:icy", wfmu: "server:icy", loveradio: "server:icy", kcsm: "server:icy",
+  wqxr: "server:icy", hpr1: "server:icy",
+  // iHeart stations (Z100, KIIS, Lite, Q104.3, Kiss Country, Big 98, Delilah) and KUMU refuse cloud servers, so they're left out
   rp: "server:rp:0", rpmellow: "server:rp:1", rprock: "server:rp:2", rpworld: "server:rp:3",
 };
 // The song-info server (worker/); while developing on localhost, the page talks to `wrangler dev`
@@ -578,6 +578,7 @@ const clean = v => (v || "").replace(/`/g, "'").replace(/\s+/g, " ").trim();
 function track(title, artist) {
   title = clean(title); artist = clean(artist);
   if (!title || /commercial|advertisement|text=|after this break/i.test(title + " " + artist)) return null;
+  if (title.toLowerCase() === artist.toLowerCase() || /^advert|^track \d+$/i.test(title)) return null;
   return { title, artist };
 }
 
