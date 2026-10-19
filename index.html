@@ -15,7 +15,7 @@
   /* Tile colors, one per topic */
   --t-news: #3b5b8c; --t-israeli: #2f7d6d; --t-jazz: #8a5a2b; --t-classical: #6b4f8f;
   --t-rock: #a23b3b; --t-electronic: #2c6f8f; --t-eclectic: #4d6b2f; --t-world: #a0632a;
-  --t-pop: #b04a7a; --t-chill: #4a7f86; --t-culture: #6d5a3f; --t-groove: #7a3f7f; --t-mizrahi: #b5702a; --t-religion: #4f6a8a; --t-country: #8c6d1f; --t-mine: #55605c;
+  --t-pop: #b04a7a; --t-chill: #4a7f86; --t-culture: #6d5a3f; --t-groove: #7a3f7f; --t-mizrahi: #b5702a; --t-religion: #4f6a8a; --t-country: #8c6d1f; --t-decades: #c0563a; --t-ballads: #7d5a9e; --t-love: #c2416b; --t-hindi: #d0731c; --t-mine: #55605c;
   --display: "Rubik", "Segoe UI", Arial, sans-serif;
   --body: "Heebo", "Segoe UI", Arial, sans-serif;
   color-scheme: light;
@@ -205,9 +205,8 @@ details.add summary { cursor: pointer; font-weight: 500; }
 <script>
 const COUNTRIES = { IL: "ישראל", US: "ארה״ב", MY: "התחנות שלי" };
 const TOPICS = {
-  israeli: "מוזיקה ישראלית", news: "חדשות ואקטואליה", culture: "תרבות", eclectic: "מגוון",
-  rock: "רוק", pop: "פופ", jazz: "ג'אז", classical: "קלאסי", electronic: "אלקטרוני",
-  groove: "היפ-הופ וסול", world: "מוזיקת עולם", chill: "רגוע", mizrahi: "מזרחית", religion: "יהדות", country: "קאנטרי",
+  country: "קאנטרי", world: "מוזיקת עולם", chill: "רגוע", decades: "70-90s",
+  ballads: "בלדות", love: "אהבה", hindi: "הינדי",
 };
 const STW = m => `https://playerservices.streamtheworld.com/api/livestream-redirect/${m}.mp3`;
 const RP = m => `https://stream.radioparadise.com/${m}`;
@@ -228,7 +227,7 @@ const STATIONS = [
   ["fm100",   "100",    "רדיוס 100FM",       "IL", ["pop"],                     "להיטים",                     "https://cdn.cybercdn.live/Radios_100FM/Audio/icecast.audio", 1],
   ["fm99",    "99",     "eco99fm",           "IL", ["pop","israeli"],           "פופ ישראלי ובינלאומי",       "https://eco-live.mediacast.co.il/99fm_aac", 1],
   ["fm102",   "102",    "רדיו תל אביב 102FM","IL", ["pop","news"],              "מוזיקה ואקטואליה",           "https://102.livecdn.biz/102fm_aac", 1],
-  ["fm963",   "96.3",   "רדיוס נוסטלגי",     "IL", ["pop"],                     "להיטים של פעם",              "https://cdna.streamgates.net/radios-audio/Nostalgia_963fm/icecast.audio", 1],
+  ["fm963",   "96.3",   "רדיוס נוסטלגי",     "IL", ["decades","pop"],                     "להיטים של פעם",              "https://cdna.streamgates.net/radios-audio/Nostalgia_963fm/icecast.audio", 1],
   ["fm91",    "91",     "לב המדינה 91FM",    "IL", ["israeli","pop"],           "מרכז הארץ",                  "https://cdn.cybercdn.live/Lev_Hamedina/Audio/icecast.audio", 1],
   ["fm90",    "90",     "רדיו 90FM",         "IL", ["israeli"],                 "אמצע הדרך",                  "https://cdn.cybercdn.live/Emtza_Haderech/Live_Audio/icecast.audio", 1],
   ["fm101",   "101",    "רדיו ירושלים 101FM","IL", ["israeli","news"],          "ירושלים",                    "https://radio.streamgates.net/stream/101fm", 1],
@@ -244,10 +243,12 @@ const STATIONS = [
   ["fm891",   "89.1",   "Первое радио",      "IL", ["pop","news"],              "רדיו ברוסית",                "https://cdn.cybercdn.live/Pervoia/Audio/icecast.audio", 1],
   ["ashams",  "שמס",    "א-שמס",             "IL", ["pop","news"],              "רדיו בערבית",                "https://cdna.streamgates.net/Ashams/Live/icecast.audio", 1],
   ["r100miz", "מזרחית", "100% מזרחית",       "IL", ["mizrahi"],                 "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Mizrachit/icecast.audio", 1],
-  ["r10090s", "90s",    "100% שנות ה-90",    "IL", ["pop"],                     "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/10090s/icecast.audio", 1],
-  ["r100old", "Oldies", "100% Oldies",       "IL", ["pop"],                     "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Oldies/icecast.audio", 1],
+  ["r10090s", "90s",    "100% שנות ה-90",    "IL", ["decades","pop"],                     "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/10090s/icecast.audio", 1],
+  ["r100old", "Oldies", "100% Oldies",       "IL", ["decades","pop"],                     "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Oldies/icecast.audio", 1],
   ["r100jazz","Jazz",   "100% Jazz",         "IL", ["jazz"],                    "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Jazz/icecast.audio", 1],
   ["r100rlx", "Relax",  "100% Relax",        "IL", ["chill"],                   "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Relax/icecast.audio", 1],
+  ["r100love","Love",   "100% Love",         "IL", ["love","ballads"],          "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Love/icecast.audio", 1],
+  ["lovesoft","Love",   "Radio Love Soft Romantic","IL", ["love","ballads"],    "שירי אהבה רומנטיים",         "https://liveradio.co.il:9000/stream", 1],
 
   ["rp",       "RP",    "Radio Paradise",    "US", ["eclectic","rock"],         "רוק, אינדי ועולם",           RP("aac-128")],
   ["rpmellow", "RP",    "Radio Paradise Mellow","US", ["chill"],                "רגוע",                       RP("mellow-128")],
@@ -255,6 +256,19 @@ const STATIONS = [
   ["rpworld",  "RP",    "Radio Paradise World","US", ["world","chill"],         "עולם ואקלקטי",               RP("world-etc-128")],
   ["kexp",     "KEXP",  "KEXP Seattle",      "US", ["rock","eclectic"],         "אינדי ואלטרנטיבי",           "https://kexp.streamguys1.com/kexp160.aac"],
   ["wfmu",     "WFMU",  "WFMU",              "US", ["eclectic"],                "רדיו חופשי ומשוגע",          "https://stream0.wfmu.org/freeform-128k"],
+  ["big98",    "Big 98","WSIX The Big 98",   "US", ["country"],                 "קאנטרי חדש, נאשוויל",        "https://stream.revma.ihrhls.com/zc2157", 1],
+  ["route650", "Route", "WSM Route 650",     "US", ["country"],                 "אמריקנה וקאנטרי, נאשוויל",   "https://stream01050.westreamradio.com/wsm2-mp3", 1],
+  ["opry100",  "Opry",  "Opry 100",          "US", ["country"],                 "קאנטרי קלאסי מהגרנד אול אופרי, נאשוויל", "https://ais-sa8.cdnstream1.com/3668_96.aac", 1],
+  ["loveradio","Love",  "Love Radio",        "US", ["love","ballads","decades"],"שירי אהבה משנות ה-70 עד ה-90", "https://loveradio.streamingmedia.it/usa", 1],
+  ["lovelive", "Love",  "Radio Love Live",   "US", ["love"],                    "שירי אהבה, ניו יורק",        "https://streaming.radiostreamlive.com/radiolovelive_devices", 1],
+  ["c181heart","Heart", "181.FM The Heart",  "US", ["love","ballads"],          "שירי אהבה",                  "https://listen.181fm.com/181-heart_128k.mp3", 1],
+  ["bigrlove", "Love",  "Big R Love Channel","US", ["love","ballads"],          "שירי אהבה ופופ רך",          "https://bigrradio.cdnstream1.com/5207_128", 1],
+  ["delilah",  "Delilah","Delilah",          "US", ["love","ballads"],          "שירי אהבה וסיפורי מאזינים",  "https://stream.revma.ihrhls.com/zc4846", 1],
+  ["kumu",     "KUMU",  "KUMU",              "US", ["ballads","chill"],         "בלדות ושירים רכים, הוואי",   "https://pacificmedia.cdnstream1.com/2783_128.mp3", 1],
+  ["c18180s",  "80s",   "181.FM Awesome 80's","US", ["decades"],                "להיטי שנות ה-80",            "https://listen.181fm.com/181-awesome80s_128k.mp3", 1],
+  ["c181star90","90s",  "181.FM Star 90's",  "US", ["decades"],                 "להיטי שנות ה-90",            "https://listen.181fm.com/181-star90s_128k.mp3", 1],
+  ["mirchi",   "Mirchi","Radio Mirchi",      "US", ["hindi"],                   "מוזיקה הינדית ובוליווד, סן פרנסיסקו", "https://playerservices.streamtheworld.com/api/livestream-redirect/SFO_HIN_PSTAAC.aac", 1],
+  ["sangeet",  "Sangeet","Sangeet Radio",    "US", ["hindi"],                   "מוזיקה הינדית, יוסטון",      "https://ice8.securenetsystems.net/SGTRADIO", 1],
   ["wbgo",     "WBGO",  "WBGO Jazz",         "US", ["jazz"],                    "ג'אז, ניוארק",               "https://ais-sa8.cdnstream1.com/3629_128.mp3"],
   ["wwoz",     "WWOZ",  "WWOZ New Orleans",  "US", ["jazz","world"],            "ג'אז, בלוז ומוזיקה של ניו אורלינס", "https://wwoz-sc.streamguys1.com/wwoz-hi.mp3"],
   ["jazz24",   "Jazz24","Jazz24",            "US", ["jazz","chill"],            "ג'אז קלאסי רצוף",            "https://knkx-live-a.edge.audiocdn.com/6285_128k"],
@@ -275,8 +289,8 @@ const STATIONS = [
   ["z100",     "Z100",  "Z100",              "US", ["pop"],                     "להיטים, ניו יורק",           "https://stream.revma.ihrhls.com/zc1469", 1],
   ["kiis",     "KIIS",  "KIIS FM",           "US", ["pop"],                     "להיטים, לוס אנג'לס",         "https://stream.revma.ihrhls.com/zc185", 1],
   ["hot97",    "Hot 97","Hot 97",            "US", ["groove"],                  "היפ-הופ, ניו יורק",          "https://playerservices.streamtheworld.com/api/livestream-redirect/WQHTFMAAC.aac", 1],
-  ["litefm",   "Lite",  "Lite FM",           "US", ["pop","chill"],             "פופ רך, ניו יורק",           "https://stream.revma.ihrhls.com/zc853", 1],
-  ["q1043",    "Q",     "Q104.3",            "US", ["rock"],                    "רוק קלאסי, ניו יורק",        "https://stream.revma.ihrhls.com/zc1465", 1],
+  ["litefm",   "Lite",  "Lite 93.9",         "US", ["love","ballads","pop","chill"], "שירי אהבה ופופ רך, שיקגו",           "https://stream.revma.ihrhls.com/zc853", 1],
+  ["q1043",    "Q",     "Q104.3",            "US", ["decades","rock"],                    "רוק קלאסי, ניו יורק",        "https://stream.revma.ihrhls.com/zc1465", 1],
   ["kroq",     "KROQ",  "KROQ",              "US", ["rock"],                    "רוק אלטרנטיבי, לוס אנג'לס",  "https://live.amperwave.net/direct/audacy-kroqfmaac-imc", 1],
 
   ["bluegrass","BG",    "Bluegrass Country", "US", ["country"],                 "בלוגראס וקאנטרי ותיק, בלי פרסומות", "https://ice24.securenetsystems.net/WAMU"],
@@ -284,7 +298,7 @@ const STATIONS = [
   ["wsm",      "WSM",   "WSM 650 AM",        "US", ["country"],                 "נאשוויל, בית הגרנד אול אופרי", "https://ais-sa8.cdnstream1.com/3666_96.aac", 1],
   ["c181real", "Real",  "181.FM Real Country","US", ["country"],                "קאנטרי קלאסי",               "https://listen.181fm.com/181-realcountry_128k.mp3", 1],
   ["c181kick", "Kickin'","181.FM Kickin' Country","US", ["country"],            "להיטי קאנטרי חדשים",         "https://listen.181fm.com/181-kickincountry_128k.mp3", 1],
-  ["c18190s",  "90s",   "181.FM 90's Country","US", ["country"],                "קאנטרי של שנות ה-90",        "https://listen.181fm.com/181-90scountry_128k.mp3", 1],
+  ["c18190s",  "90s",   "181.FM 90's Country","US", ["decades","country"],                "קאנטרי של שנות ה-90",        "https://listen.181fm.com/181-90scountry_128k.mp3", 1],
   ["outlaw",   "Outlaw","Outlaw Country",    "US", ["country","rock"],          "קאנטרי אאוטלו ורוק דרומי",   "https://r.bgp.rodeo/listen/outlaw/radio.mp3", 1],
   ["hpr1",     "HPR",   "HPR1 Classic Country","US", ["country"],               "קאנטרי מסורתי",              "https://us2.maindigitalstream.com/ssl/7713", 1],
 ].map(([id, label, name, country, topics, desc, url, ads]) => ({ id, label, name, country, topics, desc, url, ads: !!ads }));
@@ -300,6 +314,7 @@ const FREQ = {
   wbgo: 88.3, wwoz: 90.7, kcsm: 91.1, wrti: 90.1,  // Newark, New Orleans, San Mateo, Philadelphia
   wqxr: 105.9, kusc: 91.5, kingfm: 98.1, wfmt: 98.7, // New York, Los Angeles, Seattle, Chicago
   kcrw: 89.9, wxpn: 88.5, kutx: 98.9, wfuv: 90.7, current: 89.3, wyms: 88.9, wmbr: 88.1,
+  big98: 97.9, kumu: 94.7, sangeet: 95.1,      // Nashville, Honolulu, Houston
   z100: 100.3, kiis: 102.7, hot97: 97.1, litefm: 93.9, q1043: 104.3, kroq: 106.7,
 };
 STATIONS.forEach((st, i) => {
@@ -334,7 +349,8 @@ let visible = [];
 
 const HEART = full => `<svg viewBox="0 0 24 24" fill="${full ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.4 3.2 5 6.6 5c2 0 3.6 1.1 4.4 2.6h2C13.8 6.1 15.4 5 17.4 5 20.8 5 23 8.4 21.5 11.8 19.5 16.4 12 21 12 21z"/></svg>`;
 const all = () => STATIONS.concat(custom);
-const tileColor = s => `var(--t-${s.country === "MY" ? "mine" : s.topics[0]})`;
+// A tile takes the color of its first topic that has a button, so the colors match the topic chips
+const tileColor = s => `var(--t-${s.country === "MY" ? "mine" : s.topics.find(t => t in TOPICS) || s.topics[0]})`;
 
 function buildFilters() {
   const base = state.tab === "fav" ? all().filter(s => favs.has(s.id)) : all();
@@ -346,7 +362,8 @@ function buildFilters() {
   $("country").value = F().country;
 
   $("topics").innerHTML = "";
-  const used = new Set(all().flatMap(s => s.topics));
+  const used = new Set(all().flatMap(s => s.topics).filter(t => t in TOPICS));
+  if (F().topic && !used.has(F().topic)) F().topic = "";  // a saved topic that no longer has a button
   for (const [key, label] of [["", "הכול"], ...Object.entries(TOPICS).filter(([k]) => used.has(k))]) {
     const b = document.createElement("button");
     b.className = "chip";
