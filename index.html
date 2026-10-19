@@ -89,7 +89,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, .tile:focus-vis
 .tile.has-np .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile.has-np .big { font-size: 24px; }
 .tile.has-np .badge { margin-bottom: 2px; }
-/* Search results are colored by country */
+/* Every tile wears its country: Israel blue and white, the US navy with stars */
 .tile.flag-il {
   color: #0038b8; padding-block: 22px;
   background: linear-gradient(to bottom, #fff 0 4%, #0038b8 4% 10%, #fff 10% 90%, #0038b8 90% 96%, #fff 96%);
@@ -374,8 +374,8 @@ let visible = [];
 
 const HEART = full => `<svg viewBox="0 0 24 24" fill="${full ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.4 3.2 5 6.6 5c2 0 3.6 1.1 4.4 2.6h2C13.8 6.1 15.4 5 17.4 5 20.8 5 23 8.4 21.5 11.8 19.5 16.4 12 21 12 21z"/></svg>`;
 const all = () => STATIONS.concat(custom);
-// A tile takes the color of its first topic that has a button, so the colors match the topic chips
-const tileColor = s => `var(--t-${s.country === "MY" ? "mine" : s.topics.find(t => t in TOPICS) || s.topics[0]})`;
+// Color of a station: its flag's blue for Israel and the US, gray for stations you added yourself
+const tileColor = s => s.country === "IL" ? "#0038b8" : s.country === "US" ? "#0a3161" : "var(--t-mine)";
 
 function buildFilters() {
   $("topics").innerHTML = "";
@@ -384,8 +384,7 @@ function buildFilters() {
   for (const [key, label] of [["", "הכול"], ...Object.entries(TOPICS).filter(([k]) => used.has(k))]) {
     const b = document.createElement("button");
     b.className = "chip";
-    b.innerHTML = key ? `<span class="swatch" style="background: var(--t-${key})"></span>` : "";
-    b.append(label);
+    b.textContent = label;
     b.setAttribute("aria-pressed", F().topic === key);
     b.onclick = () => { F().topic = key; if (state.tab === "all") store.set("topic", key); buildFilters(); renderGrid(); };
     $("topics").appendChild(b);
@@ -436,7 +435,7 @@ function renderGrid() {
     t.tabIndex = 0; t.setAttribute("role", "button");
     t.setAttribute("aria-label", `נגן ${s.name}`);
     t.style.setProperty("--tile", tileColor(s));
-    if (state.q.trim() && (s.country === "IL" || s.country === "US")) t.classList.add("flag-" + s.country.toLowerCase());
+    if (s.country === "IL" || s.country === "US") t.classList.add("flag-" + s.country.toLowerCase());
     t.innerHTML = `
       <button class="fav" aria-pressed="${favs.has(s.id)}" aria-label="${favs.has(s.id) ? "הסרה מהמועדפים" : "הוספה למועדפים"}">${HEART(favs.has(s.id))}</button>
       <div class="big"></div>
