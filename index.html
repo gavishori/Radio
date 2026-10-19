@@ -568,8 +568,8 @@ const NP_SOURCES = {
   kisscntry: "server:icy", big98: "server:icy", hpr1: "server:icy", kumu: "server:icy",
   rp: "server:rp:0", rpmellow: "server:rp:1", rprock: "server:rp:2", rpworld: "server:rp:3",
 };
-// Set after the first deploy; while developing on localhost, the page talks to `wrangler dev`
-const NP_SERVER = location.hostname === "localhost" ? "http://127.0.0.1:8787" : "";  // empty until the server is published
+// The song-info server (worker/); while developing on localhost, the page talks to `wrangler dev`
+const NP_SERVER = location.hostname === "localhost" ? "http://127.0.0.1:8787" : "https://radio-np.gavishori.workers.dev";
 const NP_TTL = 30000;
 const nowPlaying = {};   // station id -> { title, artist }
 const npFetchedAt = {};
