@@ -89,6 +89,22 @@ button:focus-visible, select:focus-visible, input:focus-visible, .tile:focus-vis
 .tile.has-np .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile.has-np .big { font-size: 24px; }
 .tile.has-np .badge { margin-bottom: 2px; }
+/* Search results are colored by country */
+.tile.flag-il {
+  color: #0038b8; padding-block: 22px;
+  background: linear-gradient(to bottom, #fff 0 4%, #0038b8 4% 10%, #fff 10% 90%, #0038b8 90% 96%, #fff 96%);
+}
+.tile.flag-us {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26'%3E%3Cpath fill='%23fff' fill-opacity='.22' d='M13 6l1.8 4.2 4.5.3-3.5 2.9 1.1 4.4L13 15.4l-3.9 2.4 1.1-4.4-3.5-2.9 4.5-.3z'/%3E%3C/svg%3E") repeat, #0a3161;
+  box-shadow: inset 0 -7px 0 #b31942, inset 0 -11px 0 #fff;
+}
+.tile.flag-us.on { box-shadow: inset 0 -7px 0 #b31942, inset 0 -11px 0 #fff, 0 0 0 3px var(--bg), 0 0 0 6px var(--accent); }
+.tile.flag-il .fav { background: rgb(0 56 184 / .1); color: #0038b8; }
+.tile.flag-il .fav[aria-pressed="true"] { background: #0038b8; color: #fff; }
+.tile.flag-il .badge { background: rgb(0 56 184 / .12); }
+.tile.flag-il .eq i { background: #0038b8; }
+.tile.flag-il .np { border-top-color: rgb(0 56 184 / .3); }
+.tile.flag-il::after, .tile.flag-us::after { display: none; }
 .tile::after { /* soft dial ring in the corner */
   content: ""; position: absolute; inset-inline-start: -30%; bottom: -30%; width: 80%; aspect-ratio: 1;
   border-radius: 50%; border: 14px solid rgb(255 255 255 / .08); pointer-events: none;
@@ -170,8 +186,7 @@ details.add summary { cursor: pointer; font-weight: 500; }
 
   <div class="filters">
     <div class="row">
-      <label class="field" for="country"><span>מדינה</span><select id="country"></select></label>
-      <label class="field" for="search"><span>חיפוש</span><input id="search" type="search" placeholder="שם תחנה…"></label>
+      <label class="field" for="search"><span>חיפוש לפי שם או תדר</span><input id="search" type="search" inputmode="search" placeholder="למשל: גלגלצ, 97.8 או Z100"></label>
     </div>
     <div class="chips" id="topics" aria-label="נושאים"></div>
     <div class="row"><label class="toggle" for="noAds"><input id="noAds" type="checkbox"> רק תחנות בלי פרסומות</label><span class="count" id="count"></span></div>
@@ -363,14 +378,6 @@ const all = () => STATIONS.concat(custom);
 const tileColor = s => `var(--t-${s.country === "MY" ? "mine" : s.topics.find(t => t in TOPICS) || s.topics[0]})`;
 
 function buildFilters() {
-  const base = state.tab === "fav" ? all().filter(s => favs.has(s.id)) : all();
-  const counts = {};
-  for (const s of base) counts[s.country] = (counts[s.country] || 0) + 1;
-  $("country").innerHTML = `<option value="">כל המדינות (${base.length})</option>` +
-    Object.keys(COUNTRIES).filter(c => counts[c]).map(c => `<option value="${c}">${COUNTRIES[c]} (${counts[c]})</option>`).join("");
-  if (F().country && !counts[F().country]) F().country = "";
-  $("country").value = F().country;
-
   $("topics").innerHTML = "";
   const used = new Set(all().flatMap(s => s.topics).filter(t => t in TOPICS));
   if (F().topic && !used.has(F().topic)) F().topic = "";  // a saved topic that no longer has a button
@@ -385,14 +392,20 @@ function buildFilters() {
   }
 }
 
+// "97.8", "97,8", "978" and "97" all find 97.8
+function matchesFreq(s, q) {
+  if (!s.freq || !/^\d+([.,]\d*)?$/.test(q)) return false;
+  const f = s.freq.toFixed(1);
+  return f.startsWith(q.replace(",", ".")) || f.replace(".", "").startsWith(q);
+}
+
 function filtered() {
   const q = state.q.trim().toLowerCase();
   return all().filter(s =>
     (state.tab !== "fav" || favs.has(s.id)) &&
-    (!F().country || s.country === F().country) &&
-    (!F().topic || s.topics.includes(F().topic)) &&
+    (q || !F().topic || s.topics.includes(F().topic)) &&
     (!state.noAds || !s.ads) &&
-    (!q || (s.name + " " + s.desc).toLowerCase().includes(q)));
+    (!q || (s.name + " " + s.desc + " " + s.label).toLowerCase().includes(q) || matchesFreq(s, q)));
 }
 
 function renderGrid() {
@@ -402,7 +415,10 @@ function renderGrid() {
   visible = filtered();
   const grid = $("grid");
   grid.innerHTML = "";
-  $("count").textContent = visible.length ? `${visible.length} תחנות` : "";
+  const nIL = visible.filter(s => s.country === "IL").length, nUS = visible.filter(s => s.country === "US").length;
+  $("count").textContent = !visible.length ? "" : state.q.trim()
+    ? `${visible.length} תחנות: ${nIL} מישראל, ${nUS} מארה״ב`
+    : `${visible.length} תחנות`;
 
   if (!visible.length) {
     const e = document.createElement("div");
@@ -420,6 +436,7 @@ function renderGrid() {
     t.tabIndex = 0; t.setAttribute("role", "button");
     t.setAttribute("aria-label", `נגן ${s.name}`);
     t.style.setProperty("--tile", tileColor(s));
+    if (state.q.trim() && (s.country === "IL" || s.country === "US")) t.classList.add("flag-" + s.country.toLowerCase());
     t.innerHTML = `
       <button class="fav" aria-pressed="${favs.has(s.id)}" aria-label="${favs.has(s.id) ? "הסרה מהמועדפים" : "הוספה למועדפים"}">${HEART(favs.has(s.id))}</button>
       <div class="big"></div>
@@ -544,7 +561,15 @@ const NP_SOURCES = {
   // The stations' own now-playing APIs
   kexp: "kexp", kcrw: "kcrw:Simulcast", kcrwe24: "kcrw:Music", current: "current",
   bluegrass: "securenet:WAMU", kusc: "triton:KUSCMP256", hot97: "triton:WQHTFMAAC",
+  // Read through our song-info server (worker/ in this repo), for stations that block web pages
+  r10090s: "server:icy", r100old: "server:icy", r100jazz: "server:icy", r100rlx: "server:icy", r100love: "server:icy",
+  lovesoft: "server:icy", wfmu: "server:icy", loveradio: "server:icy", delilah: "server:icy", kcsm: "server:icy",
+  wqxr: "server:icy", z100: "server:icy", kiis: "server:icy", litefm: "server:icy", q1043: "server:icy",
+  kisscntry: "server:icy", big98: "server:icy", hpr1: "server:icy", kumu: "server:icy",
+  rp: "server:rp:0", rpmellow: "server:rp:1", rprock: "server:rp:2", rpworld: "server:rp:3",
 };
+// Set after the first deploy; while developing on localhost, the page talks to `wrangler dev`
+const NP_SERVER = location.hostname === "localhost" ? "http://127.0.0.1:8787" : "";  // empty until the server is published
 const NP_TTL = 30000;
 const nowPlaying = {};   // station id -> { title, artist }
 const npFetchedAt = {};
@@ -620,10 +645,23 @@ async function refreshNowPlaying() {
   const ids = new Set(visible.map(s => s.id));
   if (current) ids.add(current.id);
   const due = all().filter(s => ids.has(s.id) && NP_SOURCES[s.id] && !(Date.now() - (npFetchedAt[s.id] || 0) < NP_TTL));
+  due.forEach(s => { npFetchedAt[s.id] = Date.now(); });
+  const viaServer = due.filter(s => NP_SOURCES[s.id].startsWith("server:"));
+
+  // One request to our server for all of its stations (it takes up to 40 at a time)
+  const fromServer = {};
+  for (let i = 0; NP_SERVER && i < viaServer.length; i += 40) {
+    const q = viaServer.slice(i, i + 40).map(s => {
+      const src = NP_SOURCES[s.id].slice("server:".length);
+      return "s=" + encodeURIComponent(`${s.id}|${src === "icy" ? "icy:" + s.url : src}`);
+    }).join("&");
+    try { Object.assign(fromServer, await fetch(`${NP_SERVER}/np?${q}`).then(r => r.json())); } catch {}
+  }
+
   await Promise.all(due.map(async s => {
-    npFetchedAt[s.id] = Date.now();
     let np = null;
-    try { np = await fetchNowPlaying(s); } catch {}
+    if (viaServer.includes(s)) np = fromServer[s.id] || null;
+    else try { np = await fetchNowPlaying(s); } catch {}
     const before = JSON.stringify(nowPlaying[s.id] || null);
     if (np) nowPlaying[s.id] = np; else delete nowPlaying[s.id];
     if (JSON.stringify(np) === before) return;
@@ -677,7 +715,6 @@ $("prevBtn").onclick = () => step(-1);
 $("pFav").onclick = () => current && toggleFav(current.id);
 $("tabAll").onclick = () => { state.tab = "all"; store.set("tab", "all"); buildFilters(); renderGrid(); };
 $("tabFav").onclick = () => { state.tab = "fav"; store.set("tab", "fav"); state.f.fav = { country: "", topic: "" }; buildFilters(); renderGrid(); };
-$("country").onchange = e => { F().country = e.target.value; if (state.tab === "all") store.set("country", F().country); renderGrid(); };
 $("noAds").checked = state.noAds;
 $("noAds").onchange = e => { state.noAds = e.target.checked; store.set("noAds", state.noAds); renderGrid(); };
 $("search").oninput = e => { state.q = e.target.value; renderGrid(); };
@@ -707,7 +744,7 @@ $("addForm").addEventListener("submit", e => {
   custom.push(s);
   store.set("custom", custom.map(({ id, name, url }) => ({ id, name, url })));
   e.target.reset();
-  state.tab = "all"; state.f.all.country = "MY"; store.set("country", "MY");
+  state.tab = "all";
   buildFilters(); renderGrid();
 });
 
