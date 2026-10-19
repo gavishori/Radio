@@ -15,7 +15,7 @@
   /* Tile colors, one per topic */
   --t-news: #3b5b8c; --t-israeli: #2f7d6d; --t-jazz: #8a5a2b; --t-classical: #6b4f8f;
   --t-rock: #a23b3b; --t-electronic: #2c6f8f; --t-eclectic: #4d6b2f; --t-world: #a0632a;
-  --t-pop: #b04a7a; --t-chill: #4a7f86; --t-culture: #6d5a3f; --t-groove: #7a3f7f; --t-mine: #55605c;
+  --t-pop: #b04a7a; --t-chill: #4a7f86; --t-culture: #6d5a3f; --t-groove: #7a3f7f; --t-mizrahi: #b5702a; --t-religion: #4f6a8a; --t-mine: #55605c;
   --display: "Rubik", "Segoe UI", Arial, sans-serif;
   --body: "Heebo", "Segoe UI", Arial, sans-serif;
   color-scheme: light;
@@ -58,6 +58,9 @@ button:focus-visible, select:focus-visible, input:focus-visible, .tile:focus-vis
 }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 .count { color: var(--muted); font-size: 13px; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; user-select: none; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+.badge { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: rgb(0 0 0 / .25); margin-bottom: 4px; }
 
 /* Station grid */
 .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
@@ -140,7 +143,7 @@ details.add summary { cursor: pointer; font-weight: 500; }
 <div class="wrap">
   <header>
     <h1>רדיו נקי</h1>
-    <p>תחנות ציבוריות ותחנות במימון מאזינים מכל העולם, בלי פרסומות מסחריות.</p>
+    <p>תחנות מישראל ומכל העולם. תחנות שמשדרות פרסומות מסומנות, ואפשר להסתיר אותן.</p>
   </header>
 
   <div class="tabs" role="tablist">
@@ -154,7 +157,7 @@ details.add summary { cursor: pointer; font-weight: 500; }
       <label class="field" for="search"><span>חיפוש</span><input id="search" type="search" placeholder="שם תחנה…"></label>
     </div>
     <div class="chips" id="topics" aria-label="נושאים"></div>
-    <div class="count" id="count"></div>
+    <div class="row"><label class="toggle" for="noAds"><input id="noAds" type="checkbox"> רק תחנות בלי פרסומות</label><span class="count" id="count"></span></div>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -199,7 +202,7 @@ const COUNTRIES = {
 const TOPICS = {
   israeli: "מוזיקה ישראלית", news: "חדשות ואקטואליה", culture: "תרבות", eclectic: "מגוון",
   rock: "רוק", pop: "פופ", jazz: "ג'אז", classical: "קלאסי", electronic: "אלקטרוני",
-  groove: "גרוב וסול", world: "מוזיקת עולם", chill: "רגוע",
+  groove: "גרוב וסול", world: "מוזיקת עולם", chill: "רגוע", mizrahi: "מזרחית", religion: "יהדות",
 };
 const STW = m => `https://playerservices.streamtheworld.com/api/livestream-redirect/${m}.mp3`;
 const DLF = n => `https://st0${n}.sslstream.dlf.de/dlf/0${n}/128/mp3/stream.mp3?aggregator=web`;
@@ -207,7 +210,7 @@ const NRK = m => `https://cdn0-47115-liveicecast0.dna.contentdelivery.net/${m}_m
 const FIP = m => `https://icecast.radiofrance.fr/${m}-hifi.aac`;
 const RP = m => `https://stream.radioparadise.com/${m}`;
 
-// [id, short label, name, country, topics, description, url]
+// [id, short label, name, country, topics, description, url, has ads]
 const STATIONS = [
   ["kan88",   "88",     "כאן 88",            "IL", ["eclectic","jazz","world"], "מוזיקה איכותית, ג'אז ועולם", STW("KAN_88")],
   ["gimmel",  "גימל",   "כאן גימל",          "IL", ["israeli"],                 "מוזיקה ישראלית",             STW("KAN_GIMMEL")],
@@ -215,7 +218,34 @@ const STATIONS = [
   ["tarbut",  "תרבות",  "כאן תרבות",         "IL", ["culture"],                 "תרבות, ספרות ומוזיקה",       STW("KAN_TARBUT")],
   ["kolham",  "קלאסי",  "כאן קול המוסיקה",   "IL", ["classical"],               "מוזיקה קלאסית",              STW("KAN_KOL_HAMUSICA")],
   ["reka",    "רקע",    "כאן רקע",           "IL", ["news"],                    "שידורים בשפות שונות",        STW("KAN_REKA")],
-  ["moreshet","מורשת",  "כאן מורשת",         "IL", ["culture"],                 "מסורת ויהדות",               STW("KAN_MORESHET")],
+  ["moreshet","מורשת",  "כאן מורשת",         "IL", ["religion","culture"],      "מסורת ויהדות",               STW("KAN_MORESHET")],
+  ["glglz",   "גלגלצ",  "גלגלצ",             "IL", ["israeli","pop"],           "להיטים ומוזיקה ישראלית",     "https://glzwizzlv.bynetcdn.com/glglz_mp3"],
+  ["glz",     "גלצ",    "גלי צה״ל",          "IL", ["news","culture"],          "חדשות, אקטואליה ותרבות",     "https://glzwizzlv.bynetcdn.com/glz_mp3"],
+  ["kz",      "KZ",     "הקצה",              "IL", ["rock","eclectic"],         "רדיו אינטרנט עצמאי",         "https://kzradio.mediacast.co.il/kzradio_live/kzradio/icecast.audio"],
+  ["fm103",   "103",    "103FM",             "IL", ["news"],                    "אקטואליה ושיחות",            "https://cdn.cybercdn.live/103FM/Live/icecast.audio", 1],
+  ["fm100",   "100",    "רדיוס 100FM",       "IL", ["pop"],                     "להיטים",                     "https://cdn.cybercdn.live/Radios_100FM/Audio/icecast.audio", 1],
+  ["fm99",    "99",     "eco99fm",           "IL", ["pop","israeli"],           "פופ ישראלי ובינלאומי",       "https://eco-live.mediacast.co.il/99fm_aac", 1],
+  ["fm102",   "102",    "רדיו תל אביב 102FM","IL", ["pop","news"],              "מוזיקה ואקטואליה",           "https://102.livecdn.biz/102fm_aac", 1],
+  ["fm963",   "96.3",   "רדיוס נוסטלגי",     "IL", ["pop"],                     "להיטים של פעם",              "https://cdna.streamgates.net/radios-audio/Nostalgia_963fm/icecast.audio", 1],
+  ["fm91",    "91",     "לב המדינה 91FM",    "IL", ["israeli","pop"],           "מרכז הארץ",                  "https://cdn.cybercdn.live/Lev_Hamedina/Audio/icecast.audio", 1],
+  ["fm90",    "90",     "רדיו 90FM",         "IL", ["israeli"],                 "אמצע הדרך",                  "https://cdn.cybercdn.live/Emtza_Haderech/Live_Audio/icecast.audio", 1],
+  ["fm101",   "101",    "רדיו ירושלים 101FM","IL", ["israeli","news"],          "ירושלים",                    "https://radio.streamgates.net/stream/101fm", 1],
+  ["fm1045",  "104.5",  "104.5FM",           "IL", ["pop","israeli"],           "רדיו צפון",                  "https://radio.streamgates.net/stream/1045fm", 1],
+  ["fm1075",  "107.5",  "רדיו חיפה",         "IL", ["israeli","pop"],           "חיפה והקריות",               "https://1075.livecdn.biz/radiohaifa", 1],
+  ["fm96",    "96",     "קול רגע",           "IL", ["israeli"],                 "רדיו צפון",                  "https://cdn.cybercdn.live/Kol_Rega/Live_Audio/icecast.audio", 1],
+  ["darom1015","101.5", "רדיו דרום",         "IL", ["israeli","mizrahi"],       "הדרום",                      "https://cdn.cybercdn.live/Darom_1015FM/Live/icecast.audio", 1],
+  ["darom97", "97",     "רדיו דרום 97FM",    "IL", ["israeli","mizrahi"],       "הדרום",                      "https://cdn.cybercdn.live/Darom_97FM/Live/icecast.audio", 1],
+  ["hatahana","התחנה",  "רדיו התחנה",        "IL", ["israeli"],                 "101.5FM",                    "https://cdn.cybercdn.live/Hatahana_1015/Live_Audio/icecast.audio", 1],
+  ["fm94",    "94",     "גלי ישראל",         "IL", ["news","religion"],         "אקטואליה ויהדות",            "https://cdn.cybercdn.live/Galei_Israel/Live/icecast.audio", 1],
+  ["fm93",    "93",     "קול חי",            "IL", ["religion"],                "רדיו חרדי",                  "https://media2.93fm.co.il/live-new", 1],
+  ["kolhaimu","מיוזיק", "קול חי מיוזיק",     "IL", ["religion","israeli"],      "מוזיקה יהודית",              "https://media2.93fm.co.il/livemusic", 1],
+  ["fm891",   "89.1",   "Первое радио",      "IL", ["pop","news"],              "רדיו ברוסית",                "https://cdn.cybercdn.live/Pervoia/Audio/icecast.audio", 1],
+  ["ashams",  "שמס",    "א-שמס",             "IL", ["pop","news"],              "רדיו בערבית",                "https://cdna.streamgates.net/Ashams/Live/icecast.audio", 1],
+  ["r100miz", "מזרחית", "100% מזרחית",       "IL", ["mizrahi"],                 "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Mizrachit/icecast.audio", 1],
+  ["r10090s", "90s",    "100% שנות ה-90",    "IL", ["pop"],                     "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/10090s/icecast.audio", 1],
+  ["r100old", "Oldies", "100% Oldies",       "IL", ["pop"],                     "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Oldies/icecast.audio", 1],
+  ["r100jazz","Jazz",   "100% Jazz",         "IL", ["jazz"],                    "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Jazz/icecast.audio", 1],
+  ["r100rlx", "Relax",  "100% Relax",        "IL", ["chill"],                   "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Relax/icecast.audio", 1],
 
   ["fip",      "FIP",   "FIP",               "FR", ["eclectic"],                "אקלקטי, בלי פרסומות",        FIP("fip")],
   ["fipjazz",  "Jazz",  "FIP Jazz",          "FR", ["jazz"],                    "ג'אז",                       FIP("fipjazz")],
@@ -257,7 +287,7 @@ const STATIONS = [
   ["nrkp1",    "P1",    "NRK P1",            "NO", ["pop","news"],              "פופ וחדשות (בנורווגית)",     NRK("p1")],
 
   ["triplej",  "J",     "Triple J",          "AU", ["rock","pop"],              "אינדי ואלטרנטיבי",           "https://abc.streamguys1.com/live/triplejnsw/icecast.audio"],
-].map(([id, label, name, country, topics, desc, url]) => ({ id, label, name, country, topics, desc, url }));
+].map(([id, label, name, country, topics, desc, url, ads]) => ({ id, label, name, country, topics, desc, url, ads: !!ads }));
 
 const $ = id => document.getElementById(id);
 const audio = $("audio");
@@ -268,7 +298,7 @@ const store = {
 
 let custom = store.get("custom", []).map(s => ({ label: "★", country: "MY", topics: [], desc: "תחנה שהוספתם", ...s, country: "MY" }));
 let favs = new Set(store.get("favs", []));
-let state = { tab: store.get("tab", "all"), country: store.get("country", ""), topic: store.get("topic", ""), q: "" };
+let state = { tab: store.get("tab", "all"), country: store.get("country", ""), topic: store.get("topic", ""), noAds: store.get("noAds", false), q: "" };
 let current = null;
 let visible = [];
 
@@ -300,6 +330,7 @@ function filtered() {
     (state.tab !== "fav" || favs.has(s.id)) &&
     (!state.country || s.country === state.country) &&
     (!state.topic || s.topics.includes(state.topic)) &&
+    (!state.noAds || !s.ads) &&
     (!q || (s.name + " " + s.desc).toLowerCase().includes(q)));
 }
 
@@ -331,7 +362,7 @@ function renderGrid() {
     t.innerHTML = `
       <button class="fav" aria-pressed="${favs.has(s.id)}" aria-label="${favs.has(s.id) ? "הסרה מהמועדפים" : "הוספה למועדפים"}">${HEART(favs.has(s.id))}</button>
       <div class="big"></div>
-      <div><div class="eq"><i></i><i></i><i></i></div><div class="name"></div><div class="meta"></div></div>`;
+      <div><div class="eq"><i></i><i></i><i></i></div>${s.ads ? '<span class="badge">פרסומות</span>' : ""}<div class="name"></div><div class="meta"></div></div>`;
     t.querySelector(".big").textContent = s.label;
     t.querySelector(".name").textContent = s.name;
     t.querySelector(".meta").textContent = `${COUNTRIES[s.country]} · ${s.desc}`;
@@ -423,6 +454,8 @@ $("pFav").onclick = () => current && toggleFav(current.id);
 $("tabAll").onclick = () => { state.tab = "all"; store.set("tab", "all"); renderGrid(); };
 $("tabFav").onclick = () => { state.tab = "fav"; store.set("tab", "fav"); renderGrid(); };
 $("country").onchange = e => { state.country = e.target.value; store.set("country", state.country); renderGrid(); };
+$("noAds").checked = state.noAds;
+$("noAds").onchange = e => { state.noAds = e.target.checked; store.set("noAds", state.noAds); renderGrid(); };
 $("search").oninput = e => { state.q = e.target.value; renderGrid(); };
 
 $("vol").value = store.get("vol", 0.8);
