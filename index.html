@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>רדיו נקי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Heebo:wght@400;500&display=swap">
+<style>
+/* Layout: a tuner dial on top, the station list as a vertical "band" below, one column on every width */
+:root {
+  --bg: #eef1f0; --surface: #ffffff; --fg: #17201d; --muted: #5d6b66;
+  --line: #d5dcd9; --accent: #0f7a5c; --accent-fg: #ffffff; --live: #d23c2a;
+  --display: "Rubik", "Segoe UI", Arial, sans-serif;
+  --body: "Heebo", "Segoe UI", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #101614; --surface: #19211e; --fg: #e6ece9; --muted: #93a39d;
+    --line: #2a3531; --accent: #3cc497; --accent-fg: #06130e; --live: #ff6b57; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: max(16px, env(safe-area-inset-top, 0px)) 120px;
+}
+.wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 24px; }
+header h1 { font: 700 26px/1.1 var(--display); margin: 0; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); }
+
+/* Now playing */
+.now {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+  padding: 20px; display: grid; gap: 16px;
+}
+.now-top { display: flex; align-items: center; gap: 16px; }
+.dial {
+  flex: none; width: 64px; height: 64px; border-radius: 50%;
+  display: grid; place-items: center; font: 700 15px var(--display);
+  background: var(--accent); color: var(--accent-fg);
+}
+.now-info { min-width: 0; flex: 1; }
+.now-name { font: 700 20px/1.2 var(--display); margin: 0; overflow-wrap: anywhere; }
+.now-sub { color: var(--muted); font-size: 14px; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; letter-spacing: .04em; color: var(--muted); }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.status.live { color: var(--live); }
+.status.live .dot { background: var(--live); animation: pulse 1.4s infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .status.live .dot { animation: none; } }
+
+.controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.play {
+  width: 56px; height: 56px; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--fg); color: var(--bg); display: grid; place-items: center;
+}
+.play svg { width: 24px; height: 24px; fill: currentColor; }
+.vol { flex: 1; min-width: 140px; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+.vol input { flex: 1; accent-color: var(--accent); }
+button:focus-visible, input:focus-visible, .station:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Station list */
+section h2 { font: 500 13px var(--display); color: var(--muted); letter-spacing: .06em; margin: 0 0 8px; }
+.list { display: grid; gap: 6px; }
+.station {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 14px; border-radius: 12px; border: 1px solid transparent;
+  background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer;
+}
+.station:hover { background: var(--surface); border-color: var(--line); }
+.station[aria-current="true"] { background: var(--surface); border-color: var(--accent); }
+.freq { flex: none; width: 52px; font: 500 13px var(--display); color: var(--accent); font-variant-numeric: tabular-nums; }
+.s-text { min-width: 0; flex: 1; }
+.s-name { font-weight: 500; display: block; }
+.s-desc { color: var(--muted); font-size: 13px; display: block; }
+.del { flex: none; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px 8px; border-radius: 8px; }
+.del:hover { color: var(--live); }
+
+.add { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.add-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.add input { flex: 1 1 160px; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font: inherit; }
+.add button { padding: 10px 16px; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-fg); font: 500 14px var(--display); cursor: pointer; }
+.note { color: var(--muted); font-size: 13px; margin: 0; }
+.err { color: var(--live); font-size: 13px; min-height: 1em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>רדיו נקי</h1>
+    <p>תחנות ציבוריות ותחנות במימון מאזינים, בלי פרסומות מסחריות.</p>
+  </header>
+
+  <div class="now" aria-live="polite">
+    <div class="now-top">
+      <div class="dial" id="dial">—</div>
+      <div class="now-info">
+        <span class="status" id="status"><span class="dot"></span><span id="statusText">מוכן</span></span>
+        <p class="now-name" id="nowName">בחרו תחנה</p>
+        <div class="now-sub" id="nowSub">לחיצה על תחנה מתחילה לנגן</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="play" id="playBtn" aria-label="נגן">
+        <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <label class="vol" for="vol">עוצמה <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8"></label>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <section id="groups"></section>
+
+  <section>
+    <h2>הוספת תחנה משלכם</h2>
+    <form class="add" id="addForm">
+      <div class="add-row">
+        <input id="addName" placeholder="שם התחנה" required>
+        <input id="addUrl" placeholder="כתובת סטרים (https://…mp3)" dir="ltr" required>
+        <button type="submit">הוספה</button>
+      </div>
+      <p class="note">התחנות שתוסיפו נשמרות בדפדפן הזה בלבד.</p>
+    </form>
+  </section>
+</div>
+
+<audio id="audio" preload="none"></audio>
+
+<script>
+const STW = m => `https://playerservices.streamtheworld.com/api/livestream-redirect/${m}.mp3`;
+const GROUPS = [
+  { title: "כאן · השידור הציבורי", note: "ללא פרסומות מסחריות", stations: [
+    { id: "kan88",  freq: "88",    name: "כאן 88",        desc: "מוזיקה איכותית, ג'אז ועולם", url: STW("KAN_88") },
+    { id: "gimmel", freq: "גימל",  name: "כאן גימל",      desc: "מוזיקה ישראלית",           url: STW("KAN_GIMMEL") },
+    { id: "bet",    freq: "ב׳",    name: "כאן ב",         desc: "חדשות ואקטואליה",           url: STW("KAN_BET") },
+    { id: "tarbut", freq: "תרבות", name: "כאן תרבות",     desc: "תרבות, ספרות ומוזיקה",      url: STW("KAN_TARBUT") },
+    { id: "kolham", freq: "קלאסי", name: "כאן קול המוסיקה", desc: "מוזיקה קלאסית",            url: STW("KAN_KOL_HAMUSICA") },
+    { id: "reka",   freq: "רקע", name: "כאן רקע",       desc: "שידורים בשפות שונות",       url: STW("KAN_REKA") },
+    { id: "moreshet", freq: "מורשת",name: "כאן מורשת",     desc: "מסורת ויהדות",             url: STW("KAN_MORESHET") },
+  ]},
+  { title: "בינלאומי · במימון מאזינים", note: "", stations: [
+    { id: "rp",     freq: "RP",   name: "Radio Paradise",        desc: "רוק, אינדי ועולם, מעורבב ביד", url: "https://stream.radioparadise.com/aac-128" },
+    { id: "rpmel",  freq: "RP",   name: "Radio Paradise Mellow",  desc: "רגוע",                      url: "https://stream.radioparadise.com/mellow-128" },
+    { id: "fip",    freq: "FIP",  name: "FIP",                   desc: "רדיו צרפת, אקלקטי",          url: "https://icecast.radiofrance.fr/fip-hifi.aac" },
+    { id: "fipjazz",freq: "FIP",  name: "FIP Jazz",              desc: "ג'אז",                       url: "https://icecast.radiofrance.fr/fipjazz-hifi.aac" },
+    { id: "rprock", freq: "RP",   name: "Radio Paradise Rock",   desc: "רוק",                        url: "https://stream.radioparadise.com/rock-128" },
+    { id: "fiprock",freq: "FIP",  name: "FIP Rock",              desc: "רוק, ישן וחדש",              url: "https://icecast.radiofrance.fr/fiprock-hifi.aac" },
+  ]},
+];
+
+const $ = id => document.getElementById(id);
+const audio = $("audio");
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("radio:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("radio:" + k, JSON.stringify(v)); } catch {} },
+};
+let custom = store.get("custom", []);
+let current = null;
+
+function allStations() {
+  return GROUPS.flatMap(g => g.stations).concat(custom);
+}
+
+function render() {
+  const root = $("groups");
+  root.innerHTML = "";
+  const groups = custom.length
+    ? GROUPS.concat({ title: "התחנות שלי", note: "", stations: custom, custom: true })
+    : GROUPS;
+  for (const g of groups) {
+    const sec = document.createElement("div");
+    sec.style.marginBottom = "20px";
+    sec.innerHTML = `<h2>${g.title}${g.note ? " · " + g.note : ""}</h2>`;
+    const list = document.createElement("div");
+    list.className = "list";
+    for (const s of g.stations) {
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      const b = document.createElement("button");
+      b.className = "station";
+      b.setAttribute("aria-current", current && current.id === s.id ? "true" : "false");
+      b.innerHTML = `<span class="freq"></span><span class="s-text"><span class="s-name"></span><span class="s-desc"></span></span>`;
+      b.querySelector(".freq").textContent = s.freq || "★";
+      b.querySelector(".s-name").textContent = s.name;
+      b.querySelector(".s-desc").textContent = s.desc || "";
+      b.onclick = () => tune(s);
+      row.appendChild(b);
+      if (g.custom) {
+        const d = document.createElement("button");
+        d.className = "del"; d.textContent = "×"; d.setAttribute("aria-label", "הסרת " + s.name);
+        d.onclick = () => { custom = custom.filter(c => c.id !== s.id); store.set("custom", custom); render(); };
+        row.appendChild(d);
+      }
+      list.appendChild(row);
+    }
+    sec.appendChild(list);
+    root.appendChild(sec);
+  }
+}
+
+function setStatus(text, live) {
+  $("statusText").textContent = text;
+  $("status").classList.toggle("live", !!live);
+}
+
+function setIcon(playing) {
+  $("playIcon").innerHTML = playing
+    ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>'
+    : '<path d="M8 5v14l11-7z"/>';
+  $("playBtn").setAttribute("aria-label", playing ? "עצירה" : "נגן");
+}
+
+function tune(s) {
+  current = s;
+  store.set("last", s.id);
+  $("nowName").textContent = s.name;
+  $("nowSub").textContent = s.desc || "";
+  $("dial").textContent = s.freq || "★";
+  $("err").textContent = "";
+  // Cache-bust so a resumed live stream starts at "now", not from a stale buffer
+  audio.src = s.url + (s.url.includes("?") ? "&" : "?") + "t=" + Date.now();
+  setStatus("מתחבר…", false);
+  audio.play().catch(() => {});
+  render();
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: s.name, artist: s.desc || "רדיו נקי" });
+  }
+}
+
+function toggle() {
+  if (!current) { tune(allStations()[0]); return; }
+  if (audio.paused) tune(current);
+  else { audio.pause(); audio.removeAttribute("src"); audio.load(); setStatus("מושהה", false); setIcon(false); }
+}
+
+audio.addEventListener("playing", () => { setStatus("בשידור חי", true); setIcon(true); });
+audio.addEventListener("waiting", () => setStatus("טוען…", false));
+audio.addEventListener("error", () => {
+  if (!audio.getAttribute("src")) return;
+  setStatus("שגיאה", false); setIcon(false);
+  $("err").textContent = "לא הצלחנו להתחבר לתחנה. בדקו את החיבור לאינטרנט או נסו תחנה אחרת.";
+});
+
+$("playBtn").onclick = toggle;
+$("vol").value = store.get("vol", 0.8);
+audio.volume = +$("vol").value;
+$("vol").oninput = e => { audio.volume = +e.target.value; store.set("vol", audio.volume); };
+
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && !/INPUT|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); toggle(); }
+});
+
+if ("mediaSession" in navigator) {
+  navigator.mediaSession.setActionHandler("play", toggle);
+  navigator.mediaSession.setActionHandler("pause", toggle);
+  const step = dir => {
+    const list = allStations();
+    const i = Math.max(0, list.findIndex(s => current && s.id === current.id));
+    tune(list[(i + dir + list.length) % list.length]);
+  };
+  navigator.mediaSession.setActionHandler("nexttrack", () => step(1));
+  navigator.mediaSession.setActionHandler("previoustrack", () => step(-1));
+}
+
+$("addForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("addName").value.trim(), url = $("addUrl").value.trim();
+  if (!/^https?:\/\//.test(url)) { $("err").textContent = "הכתובת צריכה להתחיל ב-http:// או https://"; return; }
+  custom.push({ id: "c" + Date.now(), name, url, freq: "★", desc: "תחנה שהוספתם" });
+  store.set("custom", custom);
+  e.target.reset();
+  render();
+});
+
+// Restore the last station into the dial without autoplaying (browsers need a tap first)
+const last = allStations().find(s => s.id === store.get("last"));
+if (last) {
+  current = last;
+  $("nowName").textContent = last.name;
+  $("nowSub").textContent = "לחצו נגן כדי להמשיך להאזין";
+  $("dial").textContent = last.freq || "★";
+}
+render();
+</script>
+</body>
+</html>
