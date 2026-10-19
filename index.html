@@ -56,7 +56,9 @@ button:focus-visible, select:focus-visible, input:focus-visible, .tile:focus-vis
   border: 1px solid var(--line); background: var(--surface); padding: 6px 14px; border-radius: 999px;
   cursor: pointer; font-size: 14px;
 }
+.chip { display: inline-flex; align-items: center; gap: 6px; }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; box-shadow: 0 0 0 1px rgb(255 255 255 / .5); }
 .count { color: var(--muted); font-size: 13px; }
 .toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; user-select: none; }
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
@@ -289,6 +291,21 @@ const STATIONS = [
   ["triplej",  "J",     "Triple J",          "AU", ["rock","pop"],              "אינדי ואלטרנטיבי",           "https://abc.streamguys1.com/live/triplejnsw/icecast.audio"],
 ].map(([id, label, name, country, topics, desc, url, ads]) => ({ id, label, name, country, topics, desc, url, ads: !!ads }));
 
+// FM frequency in central Israel (Gush Dan), used for the tile label and the dial order
+const FREQ = {
+  kan88: 88.0, reka: 88.2, fm891: 89.1, fm90: 90.0, fm91: 91.0, glglz: 91.8, fm93: 93.0, fm94: 94.0,
+  kolham: 94.4, bet: 95.5, fm96: 96.0, fm963: 96.3, darom97: 97.0, moreshet: 97.2, gimmel: 97.8,
+  fm99: 99.0, fm100: 100.0, fm101: 101.0, ashams: 101.1, darom1015: 101.5, hatahana: 101.5,
+  fm102: 102.0, glz: 102.3, fm103: 103.0, fm1045: 104.5, tarbut: 104.8, fm1075: 107.5,
+};
+STATIONS.forEach((st, i) => {
+  st.order = i;
+  st.freq = FREQ[st.id];
+  if (st.freq) st.label = st.freq.toFixed(1);
+});
+// Stations with a frequency first, low to high; then internet-only stations in their listed order
+STATIONS.sort((a, b) => (a.freq ? 0 : 1) - (b.freq ? 0 : 1) || (a.freq || 0) - (b.freq || 0) || a.order - b.order);
+
 const $ = id => document.getElementById(id);
 const audio = $("audio");
 const store = {
@@ -298,7 +315,13 @@ const store = {
 
 let custom = store.get("custom", []).map(s => ({ label: "★", country: "MY", topics: [], desc: "תחנה שהוספתם", ...s, country: "MY" }));
 let favs = new Set(store.get("favs", []));
-let state = { tab: store.get("tab", "all"), country: store.get("country", ""), topic: store.get("topic", ""), noAds: store.get("noAds", false), q: "" };
+let state = {
+  tab: store.get("tab", "all"),
+  // Each tab keeps its own country and topic; favorites always open on every country
+  f: { all: { country: store.get("country", ""), topic: store.get("topic", "") }, fav: { country: "", topic: "" } },
+  noAds: store.get("noAds", false), q: "",
+};
+const F = () => state.f[state.tab];
 let current = null;
 let visible = [];
 
@@ -307,19 +330,22 @@ const all = () => STATIONS.concat(custom);
 const tileColor = s => `var(--t-${s.country === "MY" ? "mine" : s.topics[0]})`;
 
 function buildFilters() {
+  const base = state.tab === "fav" ? all().filter(s => favs.has(s.id)) : all();
   const counts = {};
-  for (const s of all()) counts[s.country] = (counts[s.country] || 0) + 1;
-  $("country").innerHTML = `<option value="">כל המדינות (${all().length})</option>` +
+  for (const s of base) counts[s.country] = (counts[s.country] || 0) + 1;
+  $("country").innerHTML = `<option value="">כל המדינות (${base.length})</option>` +
     Object.keys(COUNTRIES).filter(c => counts[c]).map(c => `<option value="${c}">${COUNTRIES[c]} (${counts[c]})</option>`).join("");
-  if (state.country && !counts[state.country]) state.country = "";
-  $("country").value = state.country;
+  if (F().country && !counts[F().country]) F().country = "";
+  $("country").value = F().country;
 
   $("topics").innerHTML = "";
   for (const [key, label] of [["", "הכול"], ...Object.entries(TOPICS)]) {
     const b = document.createElement("button");
-    b.className = "chip"; b.textContent = label;
-    b.setAttribute("aria-pressed", state.topic === key);
-    b.onclick = () => { state.topic = key; store.set("topic", key); buildFilters(); renderGrid(); };
+    b.className = "chip";
+    b.innerHTML = key ? `<span class="swatch" style="background: var(--t-${key})"></span>` : "";
+    b.append(label);
+    b.setAttribute("aria-pressed", F().topic === key);
+    b.onclick = () => { F().topic = key; if (state.tab === "all") store.set("topic", key); buildFilters(); renderGrid(); };
     $("topics").appendChild(b);
   }
 }
@@ -328,8 +354,8 @@ function filtered() {
   const q = state.q.trim().toLowerCase();
   return all().filter(s =>
     (state.tab !== "fav" || favs.has(s.id)) &&
-    (!state.country || s.country === state.country) &&
-    (!state.topic || s.topics.includes(state.topic)) &&
+    (!F().country || s.country === F().country) &&
+    (!F().topic || s.topics.includes(F().topic)) &&
     (!state.noAds || !s.ads) &&
     (!q || (s.name + " " + s.desc).toLowerCase().includes(q)));
 }
@@ -365,7 +391,7 @@ function renderGrid() {
       <div><div class="eq"><i></i><i></i><i></i></div>${s.ads ? '<span class="badge">פרסומות</span>' : ""}<div class="name"></div><div class="meta"></div></div>`;
     t.querySelector(".big").textContent = s.label;
     t.querySelector(".name").textContent = s.name;
-    t.querySelector(".meta").textContent = `${COUNTRIES[s.country]} · ${s.desc}`;
+    t.querySelector(".meta").textContent = `${s.freq ? "FM · " : ""}${COUNTRIES[s.country]} · ${s.desc}`;
     t.querySelector(".fav").onclick = e => { e.stopPropagation(); toggleFav(s.id); };
     if (s.country === "MY") {
       const d = document.createElement("button");
@@ -388,6 +414,7 @@ function renderGrid() {
 function toggleFav(id) {
   favs.has(id) ? favs.delete(id) : favs.add(id);
   store.set("favs", [...favs]);
+  if (state.tab === "fav") buildFilters();
   renderGrid(); renderPlayer();
 }
 
@@ -451,9 +478,9 @@ $("playBtn").onclick = toggle;
 $("nextBtn").onclick = () => step(1);
 $("prevBtn").onclick = () => step(-1);
 $("pFav").onclick = () => current && toggleFav(current.id);
-$("tabAll").onclick = () => { state.tab = "all"; store.set("tab", "all"); renderGrid(); };
-$("tabFav").onclick = () => { state.tab = "fav"; store.set("tab", "fav"); renderGrid(); };
-$("country").onchange = e => { state.country = e.target.value; store.set("country", state.country); renderGrid(); };
+$("tabAll").onclick = () => { state.tab = "all"; store.set("tab", "all"); buildFilters(); renderGrid(); };
+$("tabFav").onclick = () => { state.tab = "fav"; store.set("tab", "fav"); state.f.fav = { country: "", topic: "" }; buildFilters(); renderGrid(); };
+$("country").onchange = e => { F().country = e.target.value; if (state.tab === "all") store.set("country", F().country); renderGrid(); };
 $("noAds").checked = state.noAds;
 $("noAds").onchange = e => { state.noAds = e.target.checked; store.set("noAds", state.noAds); renderGrid(); };
 $("search").oninput = e => { state.q = e.target.value; renderGrid(); };
@@ -483,7 +510,7 @@ $("addForm").addEventListener("submit", e => {
   custom.push(s);
   store.set("custom", custom.map(({ id, name, url }) => ({ id, name, url })));
   e.target.reset();
-  state.country = "MY"; store.set("country", "MY"); state.tab = "all";
+  state.tab = "all"; state.f.all.country = "MY"; store.set("country", "MY");
   buildFilters(); renderGrid();
 });
 
