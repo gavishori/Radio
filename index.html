@@ -15,7 +15,7 @@
   /* Tile colors, one per topic */
   --t-news: #3b5b8c; --t-israeli: #2f7d6d; --t-jazz: #8a5a2b; --t-classical: #6b4f8f;
   --t-rock: #a23b3b; --t-electronic: #2c6f8f; --t-eclectic: #4d6b2f; --t-world: #a0632a;
-  --t-pop: #b04a7a; --t-chill: #4a7f86; --t-culture: #6d5a3f; --t-groove: #7a3f7f; --t-mizrahi: #b5702a; --t-religion: #4f6a8a; --t-country: #8c6d1f; --t-decades: #c0563a; --t-ballads: #7d5a9e; --t-love: #c2416b; --t-hindi: #d0731c; --t-mine: #55605c;
+  --t-pop: #b04a7a; --t-chill: #4a7f86; --t-culture: #6d5a3f; --t-groove: #7a3f7f; --t-mizrahi: #b5702a; --t-religion: #4f6a8a; --t-country: #8c6d1f; --t-decades: #c0563a; --t-ballads: #7d5a9e; --t-love: #c2416b; --t-indie: #d0731c; --t-mine: #55605c;
   --display: "Rubik", "Segoe UI", Arial, sans-serif;
   --body: "Heebo", "Segoe UI", Arial, sans-serif;
   color-scheme: light;
@@ -231,14 +231,14 @@ details.add summary { cursor: pointer; font-weight: 500; }
 const COUNTRIES = { IL: "ישראל", US: "ארה״ב", MY: "התחנות שלי" };
 const TOPICS = {
   country: "קאנטרי", world: "מוזיקת עולם", chill: "רגוע", decades: "70-90s",
-  ballads: "בלדות", love: "אהבה", hindi: "הינדי",
+  ballads: "בלדות", love: "אהבה", indie: "אינדי",
 };
 const STW = m => `https://playerservices.streamtheworld.com/api/livestream-redirect/${m}.mp3`;
 const RP = m => `https://stream.radioparadise.com/${m}`;
 
 // [id, short label, name, country, topics, description, url, has ads]
 const STATIONS = [
-  ["kan88",   "88",     "כאן 88",            "IL", ["eclectic","jazz","world"], "מוזיקה איכותית, ג'אז ועולם", STW("KAN_88")],
+  ["kan88",   "88",     "כאן 88",            "IL", ["indie","eclectic","jazz","world"], "מוזיקה איכותית, ג'אז ועולם", STW("KAN_88")],
   ["gimmel",  "גימל",   "כאן גימל",          "IL", ["israeli"],                 "מוזיקה ישראלית",             STW("KAN_GIMMEL")],
   ["bet",     "ב׳",     "כאן ב",             "IL", ["news"],                    "חדשות ואקטואליה",            STW("KAN_BET")],
   ["tarbut",  "תרבות",  "כאן תרבות",         "IL", ["culture"],                 "תרבות, ספרות ומוזיקה",       STW("KAN_TARBUT")],
@@ -247,7 +247,7 @@ const STATIONS = [
   ["moreshet","מורשת",  "כאן מורשת",         "IL", ["religion","culture"],      "מסורת ויהדות",               STW("KAN_MORESHET")],
   ["glglz",   "גלגלצ",  "גלגלצ",             "IL", ["israeli","pop"],           "להיטים ומוזיקה ישראלית",     "https://glzwizzlv.bynetcdn.com/glglz_mp3"],
   ["glz",     "גלצ",    "גלי צה״ל",          "IL", ["news","culture"],          "חדשות, אקטואליה ותרבות",     "https://glzwizzlv.bynetcdn.com/glz_mp3"],
-  ["kz",      "KZ",     "הקצה",              "IL", ["rock","eclectic"],         "רדיו אינטרנט עצמאי",         "https://kzradio.mediacast.co.il/kzradio_live/kzradio/icecast.audio"],
+  ["kz",      "KZ",     "הקצה",              "IL", ["indie","rock","eclectic"],         "רדיו אינטרנט עצמאי",         "https://kzradio.mediacast.co.il/kzradio_live/kzradio/icecast.audio"],
   ["fm103",   "103",    "103FM",             "IL", ["news"],                    "אקטואליה ושיחות",            "https://cdn.cybercdn.live/103FM/Live/icecast.audio", 1],
   ["fm100",   "100",    "רדיוס 100FM",       "IL", ["pop"],                     "להיטים",                     "https://cdn.cybercdn.live/Radios_100FM/Audio/icecast.audio", 1],
   ["fm99",    "99",     "eco99fm",           "IL", ["pop","israeli"],           "פופ ישראלי ובינלאומי",       "https://eco-live.mediacast.co.il/99fm_aac", 1],
@@ -274,13 +274,29 @@ const STATIONS = [
   ["r100rlx", "Relax",  "100% Relax",        "IL", ["chill"],                   "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Relax/icecast.audio", 1],
   ["r100love","Love",   "100% Love",         "IL", ["love","ballads"],          "ערוץ דיגיטלי של רדיוס",      "https://gb25.streamgates.net/radios-audio/100Love/icecast.audio", 1],
   ["lovesoft","Love",   "Radio Love Soft Romantic","IL", ["love","ballads"],    "שירי אהבה רומנטיים",         "https://liveradio.co.il:9000/stream", 1],
+  ["sahar",   "Sahar",  "Radio Sahar",       "IL", ["indie","rock"],            "רוק אלטרנטיבי ואינדי",       "https://live.ecast.co.il/stream/sahar/stream", 1],
 
   ["rp",       "RP",    "Radio Paradise",    "US", ["eclectic","rock"],         "רוק, אינדי ועולם",           RP("aac-128")],
   ["rpmellow", "RP",    "Radio Paradise Mellow","US", ["chill"],                "רגוע",                       RP("mellow-128")],
   ["rprock",   "RP",    "Radio Paradise Rock","US", ["rock"],                   "רוק",                        RP("rock-128")],
   ["rpworld",  "RP",    "Radio Paradise World","US", ["world","chill"],         "עולם ואקלקטי",               RP("world-etc-128")],
-  ["kexp",     "KEXP",  "KEXP Seattle",      "US", ["rock","eclectic"],         "אינדי ואלטרנטיבי",           "https://kexp.streamguys1.com/kexp160.aac"],
+  ["kexp",     "KEXP",  "KEXP Seattle",      "US", ["indie","rock","eclectic"],         "אינדי ואלטרנטיבי",           "https://kexp.streamguys1.com/kexp160.aac"],
   ["wfmu",     "WFMU",  "WFMU",              "US", ["eclectic"],                "רדיו חופשי ומשוגע",          "https://stream0.wfmu.org/freeform-128k"],
+  ["indie1023","Indie", "Indie 102.3",       "US", ["indie"],                   "אינדי, דנוור",               "https://stream2.cprnetwork.org/cpr3_aac"],
+  ["kxt",      "KXT",   "KXT",               "US", ["indie"],                   "אינדי ורוק, דאלאס",          "https://kera.streamguys1.com/kxtlive128"],
+  ["wnxp",     "WNXP",  "WNXP",              "US", ["indie"],                   "אינדי, נאשוויל",             "https://wpln.streamguys1.com/wnxpfm.mp3"],
+  ["wtmd",     "WTMD",  "WTMD",              "US", ["indie"],                   "אינדי ורוק, בולטימור",       "https://wtmd-ice.streamguys1.com/wtmd.mp3"],
+  ["wyep",     "WYEP",  "WYEP",              "US", ["indie"],                   "אינדי ורוק, פיטסבורג",       "https://ais-sa3.cdnstream1.com/2557_128.mp3"],
+  ["kalx",     "KALX",  "KALX",              "US", ["indie"],                   "רדיו הסטודנטים של ברקלי",    "https://stream.kalx.berkeley.edu:8443/kalx-128.mp3"],
+  ["wnyu",     "WNYU",  "WNYU",              "US", ["indie"],                   "רדיו הסטודנטים של NYU",      "https://www.wnyu-ice-cast-relay.com/wnyu.mp3"],
+  ["kxlu",     "KXLU",  "KXLU",              "US", ["indie"],                   "רדיו סטודנטים, לוס אנג'לס",  "https://kxlu.streamguys1.com/kxlu-hi"],
+  ["xpon",     "XPN2",  "XPoNential Radio",  "US", ["indie"],                   "ערוץ האינדי של WXPN",        "https://wxpn.xpn.org/xpn2mp3hi"],
+  ["wrlt",     "100",   "Lightning 100",     "US", ["indie"],                   "אינדי ורוק, נאשוויל",        "https://playerservices.streamtheworld.com/api/livestream-redirect/WRLTFM.mp3", 1],
+  ["alt987",   "ALT",   "ALT 98.7",          "US", ["indie"],                   "רוק אלטרנטיבי, לוס אנג'לס",  "https://stream.revma.ihrhls.com/zc201", 1],
+  ["indie617", "617",   "Indie617",          "US", ["indie"],                   "אינדי ואלטרנטיבי, בוסטון",   "https://s5.radio.co/s36d03408d/listen", 1],
+  ["indiefm",  "Indie", "The Independent FM","US", ["indie"],                   "אינדי רוק, לוס אנג'לס",      "https://listen.radioking.com/radio/293701/stream/340084", 1],
+  ["hitzindie","Indie", "100hitz Indie Rock","US", ["indie"],                   "אינדי רוק",                  "https://pureplay.cdnstream1.com/6056_64.aac", 1],
+  ["static",   "Static","Static",            "US", ["indie","decades"],         "אלטרנטיבי של שנות ה-90 וה-2000", "https://r.bgp.rodeo/listen/static/radio.mp3", 1],
   ["big98",    "Big 98","WSIX The Big 98",   "US", ["country"],                 "קאנטרי חדש, נאשוויל",        "https://stream.revma.ihrhls.com/zc2157", 1],
   ["route650", "Route", "WSM Route 650",     "US", ["country"],                 "אמריקנה וקאנטרי, נאשוויל",   "https://stream01050.westreamradio.com/wsm2-mp3", 1],
   ["opry100",  "Opry",  "Opry 100",          "US", ["country"],                 "קאנטרי קלאסי מהגרנד אול אופרי, נאשוויל", "https://ais-sa8.cdnstream1.com/3668_96.aac", 1],
@@ -292,8 +308,6 @@ const STATIONS = [
   ["kumu",     "KUMU",  "KUMU",              "US", ["ballads","chill"],         "בלדות ושירים רכים, הוואי",   "https://pacificmedia.cdnstream1.com/2783_128.mp3", 1],
   ["c18180s",  "80s",   "181.FM Awesome 80's","US", ["decades"],                "להיטי שנות ה-80",            "https://listen.181fm.com/181-awesome80s_128k.mp3", 1],
   ["c181star90","90s",  "181.FM Star 90's",  "US", ["decades"],                 "להיטי שנות ה-90",            "https://listen.181fm.com/181-star90s_128k.mp3", 1],
-  ["mirchi",   "Mirchi","Radio Mirchi",      "US", ["hindi"],                   "מוזיקה הינדית ובוליווד, סן פרנסיסקו", "https://playerservices.streamtheworld.com/api/livestream-redirect/SFO_HIN_PSTAAC.aac", 1],
-  ["sangeet",  "Sangeet","Sangeet Radio",    "US", ["hindi"],                   "מוזיקה הינדית, יוסטון",      "https://ice8.securenetsystems.net/SGTRADIO", 1],
   ["wbgo",     "WBGO",  "WBGO Jazz",         "US", ["jazz"],                    "ג'אז, ניוארק",               "https://ais-sa8.cdnstream1.com/3629_128.mp3"],
   ["wwoz",     "WWOZ",  "WWOZ New Orleans",  "US", ["jazz","world"],            "ג'אז, בלוז ומוזיקה של ניו אורלינס", "https://wwoz-sc.streamguys1.com/wwoz-hi.mp3"],
   ["jazz24",   "Jazz24","Jazz24",            "US", ["jazz","chill"],            "ג'אז קלאסי רצוף",            "https://knkx-live-a.edge.audiocdn.com/6285_128k"],
@@ -304,19 +318,19 @@ const STATIONS = [
   ["kingfm",   "KING",  "Classical KING FM", "US", ["classical"],               "קלאסי, סיאטל",               "https://classicalking.streamguys1.com/king-fm-aac-128k"],
   ["wfmt",     "WFMT",  "WFMT",              "US", ["classical"],               "קלאסי, שיקגו",               "https://wfmt.streamguys1.com/main128.aac", 1],
   ["kcrw",     "KCRW",  "KCRW",              "US", ["eclectic","news"],         "מוזיקה מגוונת וחדשות, לוס אנג'לס", "https://streams.kcrw.com/kcrw_mp3"],
-  ["kcrwe24",  "E24",   "KCRW Eclectic24",   "US", ["eclectic"],                "מוזיקה מגוונת רצופה",        "https://streams.kcrw.com/e24_mp3"],
-  ["wxpn",     "XPN",   "WXPN",              "US", ["rock","eclectic"],         "רוק ואינדי, פילדלפיה",       "https://wxpnhi.xpn.org/xpnhi"],
-  ["kutx",     "KUTX",  "KUTX",              "US", ["rock","eclectic"],         "המוזיקה של אוסטין",          "https://streams.kut.org/4428_192.mp3"],
-  ["wfuv",     "WFUV",  "WFUV",              "US", ["rock","eclectic"],         "רוק ופולק, ניו יורק",        "https://onair.wfuv.org/onair-aacplus"],
-  ["current",  "Current","The Current",      "US", ["rock","eclectic"],         "אינדי, מיניאפוליס",          "https://current.stream.publicradio.org/current.mp3"],
-  ["wyms",     "88Nine","Radio Milwaukee",   "US", ["eclectic"],                "מוזיקה מגוונת, מילווקי",     "https://wyms.streamguys1.com/live"],
-  ["wmbr",     "WMBR",  "WMBR",              "US", ["eclectic"],                "רדיו הסטודנטים של MIT",      "https://wmbr.org:8002/hi"],
+  ["kcrwe24",  "E24",   "KCRW Eclectic24",   "US", ["indie","eclectic"],                "מוזיקה מגוונת רצופה",        "https://streams.kcrw.com/e24_mp3"],
+  ["wxpn",     "XPN",   "WXPN",              "US", ["indie","rock","eclectic"],         "רוק ואינדי, פילדלפיה",       "https://wxpnhi.xpn.org/xpnhi"],
+  ["kutx",     "KUTX",  "KUTX",              "US", ["indie","rock","eclectic"],         "המוזיקה של אוסטין",          "https://streams.kut.org/4428_192.mp3"],
+  ["wfuv",     "WFUV",  "WFUV",              "US", ["indie","rock","eclectic"],         "רוק ופולק, ניו יורק",        "https://onair.wfuv.org/onair-aacplus"],
+  ["current",  "Current","The Current",      "US", ["indie","rock","eclectic"],         "אינדי, מיניאפוליס",          "https://current.stream.publicradio.org/current.mp3"],
+  ["wyms",     "88Nine","Radio Milwaukee",   "US", ["indie","eclectic"],                "מוזיקה מגוונת, מילווקי",     "https://wyms.streamguys1.com/live"],
+  ["wmbr",     "WMBR",  "WMBR",              "US", ["indie","eclectic"],                "רדיו הסטודנטים של MIT",      "https://wmbr.org:8002/hi"],
   ["z100",     "Z100",  "Z100",              "US", ["pop"],                     "להיטים, ניו יורק",           "https://stream.revma.ihrhls.com/zc1469", 1],
   ["kiis",     "KIIS",  "KIIS FM",           "US", ["pop"],                     "להיטים, לוס אנג'לס",         "https://stream.revma.ihrhls.com/zc185", 1],
   ["hot97",    "Hot 97","Hot 97",            "US", ["groove"],                  "היפ-הופ, ניו יורק",          "https://playerservices.streamtheworld.com/api/livestream-redirect/WQHTFMAAC.aac", 1],
   ["litefm",   "Lite",  "Lite 93.9",         "US", ["love","ballads","pop","chill"], "שירי אהבה ופופ רך, שיקגו",           "https://stream.revma.ihrhls.com/zc853", 1],
   ["q1043",    "Q",     "Q104.3",            "US", ["decades","rock"],                    "רוק קלאסי, ניו יורק",        "https://stream.revma.ihrhls.com/zc1465", 1],
-  ["kroq",     "KROQ",  "KROQ",              "US", ["rock"],                    "רוק אלטרנטיבי, לוס אנג'לס",  "https://live.amperwave.net/direct/audacy-kroqfmaac-imc", 1],
+  ["kroq",     "KROQ",  "KROQ",              "US", ["indie","rock"],                    "רוק אלטרנטיבי, לוס אנג'לס",  "https://live.amperwave.net/direct/audacy-kroqfmaac-imc", 1],
 
   ["bluegrass","BG",    "Bluegrass Country", "US", ["country"],                 "בלוגראס וקאנטרי ותיק, בלי פרסומות", "https://ice24.securenetsystems.net/WAMU"],
   ["kisscntry","Kiss",  "99.9 Kiss Country", "US", ["country"],                 "קאנטרי עכשווי, מיאמי",       "https://stream.revma.ihrhls.com/zc1577", 1],
@@ -339,7 +353,9 @@ const FREQ = {
   wbgo: 88.3, wwoz: 90.7, kcsm: 91.1, wrti: 90.1,  // Newark, New Orleans, San Mateo, Philadelphia
   wqxr: 105.9, kusc: 91.5, kingfm: 98.1, wfmt: 98.7, // New York, Los Angeles, Seattle, Chicago
   kcrw: 89.9, wxpn: 88.5, kutx: 98.9, wfuv: 90.7, current: 89.3, wyms: 88.9, wmbr: 88.1,
-  big98: 97.9, kumu: 94.7, sangeet: 95.1,      // Nashville, Honolulu, Houston
+  big98: 97.9, kumu: 94.7,                     // Nashville, Honolulu
+  indie1023: 102.3, kxt: 91.7, wnxp: 91.1, wtmd: 89.7, wyep: 91.3, kalx: 90.7, wnyu: 89.1, kxlu: 88.9,
+  wrlt: 100.1, alt987: 98.7,
   z100: 100.3, kiis: 102.7, hot97: 97.1, litefm: 93.9, q1043: 104.3, kroq: 106.7,
 };
 STATIONS.forEach((st, i) => {
@@ -564,6 +580,8 @@ const NP_SOURCES = {
   r10090s: "server:icy", r100old: "server:icy", r100jazz: "server:icy", r100rlx: "server:icy", r100love: "server:icy",
   lovesoft: "server:icy", wfmu: "server:icy", loveradio: "server:icy", kcsm: "server:icy",
   wqxr: "server:icy", hpr1: "server:icy",
+  kxt: "server:icy", wyep: "server:icy", wrlt: "server:icy", wnyu: "server:icy", indie617: "server:icy",
+  indiefm: "server:icy", hitzindie: "server:icy", static: "server:icy", sahar: "server:icy",
   // iHeart stations (Z100, KIIS, Lite, Q104.3, Kiss Country, Big 98, Delilah) and KUMU refuse cloud servers, so they're left out
   rp: "server:rp:0", rpmellow: "server:rp:1", rprock: "server:rp:2", rpworld: "server:rp:3",
 };

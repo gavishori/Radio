@@ -16,6 +16,8 @@ const ALLOWED_HOSTS = [
   "ice7.securenetsystems.net", "stream.wqxr.org", "classicalking.streamguys1.com",
   "us2.maindigitalstream.com", "pacificmedia.cdnstream1.com", "ais-sa8.cdnstream1.com",
   "knkx-live-a.edge.audiocdn.com", "r.bgp.rodeo",
+  "kera.streamguys1.com", "ais-sa3.cdnstream1.com", "playerservices.streamtheworld.com",
+  "www.wnyu-ice-cast-relay.com", "s5.radio.co", "listen.radioking.com", "pureplay.cdnstream1.com", "live.ecast.co.il",
 ];
 const MAX_ITEMS = 40;   // stay under the free plan's 50 outgoing requests per call
 const CACHE_SECONDS = 20;
